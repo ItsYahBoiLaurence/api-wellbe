@@ -10,8 +10,6 @@ datasource db {
 model Company {
   id          Int          @id @default(autoincrement())
   name        String
-  address     String?
-  contactInfo String?
   createdAt   DateTime     @default(now())
   departments Department[]
 }
@@ -26,12 +24,13 @@ model Department {
 }
 
 model Employee {
-  id           Int        @id @default(autoincrement())
-  firstName    String
-  lastName     String
-  email        String     @unique
-  departmentId Int
-  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  id            Int             @id @default(autoincrement())
+  firstName     String
+  lastName      String
+  email         String          @unique
+  departmentId  Int
+  department    Department      @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  batchResponse BatchResponse[]
 }
 
 model Question {
@@ -40,4 +39,20 @@ model Question {
   is_flipped Boolean
   domain     String
   subdomain  String
+}
+
+model BatchResponse {
+  id          Int           @id @default(autoincrement())
+  setResponse SetResponse[]
+  created_at  DateTime
+  employeeId  Int
+  employee    Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model SetResponse {
+  id         Int           @id @default(autoincrement())
+  created_at DateTime
+  batchId    Int
+  batch      BatchResponse @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  response   Json
 }

@@ -1,4 +1,7 @@
 import { Module } from '@nestjs/common';
+import { DepartmentModule } from './department/department.module';
 
-@Module({})
+@Module({
+  imports: [DepartmentModule]
+})
 export class HrAdminModule {}
