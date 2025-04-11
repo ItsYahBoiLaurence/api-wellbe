@@ -4,4 +4,4 @@ import { QuestionModule } from './question/question.module';
 @Module({
   imports: [QuestionModule]
 })
-export class EmployeeModule {}
+export class EmployeeModule { }
