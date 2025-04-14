@@ -7,34 +7,35 @@ export class UserService {
     constructor(private readonly prisma: PrismaService) { }
 
     async createEmployee(payload: UserModel) {
-        try {
-            if (!payload) throw new BadRequestException("Invalid Payload")
+        if (!payload) throw new BadRequestException("Invalid Payload")
 
-            const department = await this.prisma.department.findFirst({
-                where: {
+        const company = await this.prisma.company.findUnique({
+            where: {
+                name: payload.company,
+            },
+        })
+
+        if (!company) throw new NotFoundException('Company does not exist!')
+
+        const department = await this.prisma.department.findUnique({
+            where: {
+                name_company_id: {
                     name: payload.department_name,
-                    company: {
-                        name: payload.company
-                    }
-                }
-            })
+                    company_id: company.name,
+                },
+            },
+        })
 
-            if (!department) throw new NotFoundException('Company does not exist!')
+        if (!department) throw new NotFoundException('Department does not exist!')
 
-            const newUser = this.prisma.employee.create({
-                data: {
-                    email: payload.email,
-                    first_name: payload.first_name,
-                    last_name: payload.last_name,
-                    department_id: department.id
-                }
-            })
-
-            if (!newUser) throw new ConflictException('User creation failed!')
-
-            return newUser
-        } catch (error) {
-            throw error
-        }
+        const newUser = await this.prisma.employee.create({
+            data: {
+                email: payload.email,
+                first_name: payload.first_name,
+                last_name: payload.last_name,
+                department_id: department.id,
+            },
+        })
+        return newUser
     }
 }

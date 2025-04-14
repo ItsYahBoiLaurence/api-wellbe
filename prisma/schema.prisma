@@ -22,6 +22,8 @@ model Department {
   company_id String
   company    Company    @relation(fields: [company_id], references: [name], onDelete: Cascade)
   employees  Employee[]
+
+  @@unique([name, company_id])
 }
 
 model Employee {
