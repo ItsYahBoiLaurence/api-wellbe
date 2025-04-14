@@ -1,24 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { Question } from '@prisma/client'
+import { AnswerModel } from 'src/types/answer';
 
 @Injectable()
 export class QuestionService {
     constructor(private readonly prisma: PrismaService) { }
-
-    async getAllQuestions(domain?: string): Promise<Question[]> {
-
-        return this.prisma.question.findMany({
-            where: domain ? { domain } : undefined
-        });
-    }
-
-    async createQuestions(data: Question) {
-        const createdQuestions = await this.prisma.question.create({
-            data
-        });
-        return createdQuestions;
-    }
 
     private async generateBatchQuestions() {
         try {
@@ -93,13 +80,32 @@ export class QuestionService {
         } catch (error) {
             Logger.error('Error generating batch questions:', error);
             return {
-                message: error
+                message: "There's an error while generating the questions."
             };
         }
     }
 
+    async getAllQuestions(domain?: string): Promise<Question[]> {
+
+        return this.prisma.question.findMany({
+            where: domain ? { domain } : undefined
+        });
+    }
+
+    // async createQuestions(data: Question) {
+    //     const createdQuestions = await this.prisma.question.create({
+    //         data
+    //     });
+    //     return createdQuestions;
+    // }
+
     async generateQuestion() {
         return this.generateBatchQuestions()
+    }
+
+    async submitAnswers(data: AnswerModel[]) {
+        if (!data) return { message: 'No Data Submitted' }
+        return data
     }
 
 }
