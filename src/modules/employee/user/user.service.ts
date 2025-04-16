@@ -15,7 +15,7 @@ export class UserService {
 
         const company = await this.helper.getCompany(payload.company)
 
-        const department_id = await this.helper.getDepartmentId(company, payload.department_name)
+        const department_id = await this.helper.getDepartmentId(company.name, payload.department_name)
 
         const newUser = await this.prisma.employee.create({
             data: {

@@ -5,3 +5,8 @@ export interface UserModel {
     department_name: string
     company: string
 }
+
+export interface UserQuery {
+    company: string,
+    email: string
+}

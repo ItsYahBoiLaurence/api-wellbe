@@ -48,18 +48,21 @@ model Batch_Record {
   created_at            DateTime               @default(now())
   start_date            DateTime               @default(now())
   end_date              DateTime
-  is_completed          Boolean
+  is_completed          Boolean                @default(false)
   company_name          String
   company               Company                @relation(fields: [company_name], references: [name], onDelete: Cascade)
-  current_set_number    Int
+  current_set_number    Int                    @default(0)
   employees_under_batch Employee_Under_Batch[]
 }
 
 model Employee_Under_Batch {
-  email         String       @id @unique
+  id            Int          @id @default(autoincrement())
+  email         String
   question_bank Json
   answer_bank   Json
-  is_completed  Boolean
+  is_completed  Boolean      @default(false)
   batch_id      Int
   batch         Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+
+  @@unique([email, batch_id])
 }
