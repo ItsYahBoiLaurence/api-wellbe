@@ -145,7 +145,6 @@ export class HelperService {
                 company_name
             }
         })
-        Logger.log(company_record)
         return company_record
     }
 
@@ -178,7 +177,7 @@ export class HelperService {
 
         if (!current_set) throw new NotFoundException('No Batch Available!')
 
-        return { current_set: current_set?.current_set_number }
+        return current_set?.current_set_number
     }
 
     async getLatestBatch(company_name: string) {

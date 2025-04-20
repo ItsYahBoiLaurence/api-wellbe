@@ -30,7 +30,7 @@ export class QuestionService {
 
         const batch = await this.helper.getLatestBatch(company_name.name)
 
-        if (batch?.is_completed === true) throw new ConflictException("Batch Complete!")
+        if (batch?.is_completed === true) throw new ConflictException("Batch Completed!")
 
         if (!batch) throw new NotFoundException("No Batch Available!")
 
@@ -44,6 +44,13 @@ export class QuestionService {
         if (!user) throw new NotFoundException("User not found!")
 
         if (user.set_participation?.[batch.current_set_number - 1] === true) throw new ConflictException('No question available!')
+
+
+
+        if (Array.isArray(user.set_participation)) {
+            const participation = [...user.set_participation]
+            if (participation[participation.length - 1] === true) throw new ConflictException("You don't have any Questions left in the bank!")
+        }
 
         const question_indeces = user.question_bank?.[batch.current_set_number - 1]
 
@@ -61,9 +68,6 @@ export class QuestionService {
 
         return questions
     }
-
-
-
 
     async submitAnswers(data: AnswerModel[], user_data: UserPayload) {
 
@@ -112,6 +116,7 @@ export class QuestionService {
                 }
             })
         }
+
 
         return user_answer
     }

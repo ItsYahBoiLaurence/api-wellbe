@@ -15,7 +15,7 @@ export class MayanAdminController {
 
     @Get()
     async testing() {
-        const batch_record = await this.helper.getLatestBatch("Mayan Solutions Inc")
+        const batch_record = await this.helper.getCurrentSet("Mayan Solutions Inc")
 
         return batch_record
     }
