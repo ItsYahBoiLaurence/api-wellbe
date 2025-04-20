@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserQuery } from 'src/types/user';
 
@@ -7,6 +7,7 @@ export class HelperService {
     constructor(private readonly prisma: PrismaService) { }
 
     async getCompany(company_name: string) {
+        if (!company_name) throw new BadRequestException("Invalid Payload")
         const company = await this.prisma.company.findUnique({
             where: {
                 name: company_name
@@ -163,5 +164,32 @@ export class HelperService {
         if (company_record?.is_completed === false) return false
 
         return true
+    }
+
+    async getCurrentSet(company_name: string) {
+        const current_set = await this.prisma.batch_Record.findFirst({
+            where: {
+                company_name
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        })
+
+        if (!current_set) throw new NotFoundException('No Batch Available!')
+
+        return { current_set: current_set?.current_set_number }
+    }
+
+    async getLatestBatch(company_name: string) {
+        const latest_batch = await this.prisma.batch_Record.findFirst({
+            where: {
+                company_name
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        })
+        return latest_batch
     }
 }

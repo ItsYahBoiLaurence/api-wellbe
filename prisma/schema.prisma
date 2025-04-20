@@ -5,6 +5,8 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // uncomment next line if you use Prisma <5.10
+  // directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model Company {
@@ -51,18 +53,28 @@ model Batch_Record {
   is_completed          Boolean                @default(false)
   company_name          String
   company               Company                @relation(fields: [company_name], references: [name], onDelete: Cascade)
-  current_set_number    Int                    @default(0)
+  current_set_number    Int                    @default(1)
   employees_under_batch Employee_Under_Batch[]
 }
 
 model Employee_Under_Batch {
-  id            Int          @id @default(autoincrement())
-  email         String
-  question_bank Json
-  answer_bank   Json
-  is_completed  Boolean      @default(false)
-  batch_id      Int
-  batch         Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+  id                Int          @id @default(autoincrement())
+  email             String
+  question_bank     Json
+  answer_bank       Json
+  is_completed      Boolean      @default(false)
+  batch_id          Int
+  batch             Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+  created_at        DateTime
+  Answer            Answer[]
+  set_participation Json         @default("[false,false,false,false,false]")
 
   @@unique([email, batch_id])
+}
+
+model Answer {
+  id          Int                  @id @default(autoincrement())
+  answer      Json
+  employee_id Int
+  employee    Employee_Under_Batch @relation(fields: [employee_id], references: [id], onDelete: Cascade)
 }

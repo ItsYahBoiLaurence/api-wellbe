@@ -7,9 +7,20 @@ import { PrismaService } from './modules/prisma/prisma.service';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { MayanAdminModule } from './modules/mayan-admin/mayan-admin.module';
 import { HelperModule } from './modules/helper/helper.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [EmployeeModule, HrAdminModule, PrismaModule, MayanAdminModule, HelperModule,],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    EmployeeModule,
+    HrAdminModule,
+    PrismaModule,
+    MayanAdminModule,
+    HelperModule,
+    AuthModule,],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })

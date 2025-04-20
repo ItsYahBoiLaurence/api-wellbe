@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { Question } from '@prisma/client'
 import { AnswerModel } from 'src/types/answer';
 import { HelperService } from 'src/modules/helper/helper.service';
+import { UserPayload } from 'src/types/payload';
 
 @Injectable()
 export class QuestionService {
@@ -19,20 +20,99 @@ export class QuestionService {
         });
     }
 
-    // async createQuestions(data: Question) {
-    //     const createdQuestions = await this.prisma.question.create({
-    //         data
-    //     });
-    //     return createdQuestions;
-    // }
+    async generateQuestion(payload: UserPayload) {
 
-    async generateQuestion() {
-        return this.helper.generateBatchQuestions()
+        const { company, email } = payload
+
+        if (!company || !email) throw new BadRequestException("Invalid Payload")
+
+        const company_name = await this.helper.getCompany(company)
+
+        const batch = await this.helper.getLatestBatch(company_name.name)
+
+        if (batch?.is_completed === true) throw new ConflictException("Batch Complete!")
+
+        if (!batch) throw new NotFoundException("No Batch Available!")
+
+        const user = await this.prisma.employee_Under_Batch.findFirst({
+            where: {
+                batch_id: batch.id,
+                email
+            }
+        })
+
+        if (!user) throw new NotFoundException("User not found!")
+
+        if (user.set_participation?.[batch.current_set_number - 1] === true) throw new ConflictException('No question available!')
+
+        const question_indeces = user.question_bank?.[batch.current_set_number - 1]
+
+        const questions = await this.prisma.question.findMany({
+            where: {
+                id: {
+                    in: question_indeces
+                }
+            },
+            select: {
+                id: true,
+                question: true
+            }
+        })
+
+        return questions
     }
 
-    async submitAnswers(data: AnswerModel[]) {
-        if (!data) return { message: 'No Data Submitted' }
-        return data
-    }
 
+
+
+    async submitAnswers(data: AnswerModel[], user_data: UserPayload) {
+
+        if (!data || !user_data) throw new BadRequestException("Invalid Payload!")
+
+        const { email, company } = user_data
+
+        const company_name = await this.helper.getCompany(company)
+
+        const batch = await this.helper.getLatestBatch(company_name.name)
+
+        if (!batch) throw new NotFoundException("No Batch Available!")
+
+        const user = await this.prisma.employee_Under_Batch.findFirst({
+            where: {
+                batch_id: batch.id,
+                email
+            }
+        })
+
+        if (!user) throw new NotFoundException("User not in the Batch!")
+
+
+        if (user.set_participation?.[batch.current_set_number - 1] === true) throw new ConflictException('You already submitted your answer!')
+
+        const user_answer = await this.prisma.answer.create({
+            data: {
+                answer: data,
+                employee_id: user?.id
+            }
+        })
+
+        if (user && Array.isArray(user.set_participation)) {
+            const updatedPayload = [...user.set_participation]
+            updatedPayload[batch.current_set_number - 1] = true
+
+            await this.prisma.employee_Under_Batch.update({
+                where: {
+                    email_batch_id: {
+                        batch_id: batch.id,
+                        email
+                    }
+                },
+                data: {
+                    set_participation: updatedPayload
+                }
+            })
+        }
+
+        return user_answer
+    }
 }

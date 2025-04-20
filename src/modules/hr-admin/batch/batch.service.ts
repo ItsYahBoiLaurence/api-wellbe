@@ -62,6 +62,7 @@ export class BatchService {
             await this.prisma.employee_Under_Batch.create({
                 data: {
                     email: email,
+                    created_at: start,
                     question_bank: questions,
                     answer_bank: questions,
                     batch_id: newBatch.id,
