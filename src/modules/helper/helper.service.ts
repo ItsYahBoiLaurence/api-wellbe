@@ -1,10 +1,12 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserQuery } from 'src/types/user';
+import * as bcrypt from 'bcrypt'
 
 @Injectable()
 export class HelperService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(private readonly prisma: PrismaService,
+    ) { }
 
     async getCompany(company_name: string) {
         if (!company_name) throw new BadRequestException("Invalid Payload")
@@ -20,6 +22,8 @@ export class HelperService {
     }
 
     async getDepartmentId(company_name: string, department_name: string) {
+        if (!company_name || !department_name) throw new BadRequestException()
+
         const department = await this.prisma.department.findUnique({
             where: {
                 name_company_id: {
@@ -190,5 +194,13 @@ export class HelperService {
             }
         })
         return latest_batch
+    }
+
+    async hashPass(password: string) {
+        return await bcrypt.hash(password, 10)
+    }
+
+    async comparePass(password: string, hashed_pass: string) {
+        return await bcrypt.compare(password, hashed_pass)
     }
 }

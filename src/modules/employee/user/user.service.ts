@@ -13,16 +13,21 @@ export class UserService {
     async createEmployee(payload: UserModel) {
         if (!payload) throw new BadRequestException("Invalid Payload")
 
-        const company = await this.helper.getCompany(payload.company)
+        const { email, first_name, last_name, password, company, department_name } = payload
 
-        const department_id = await this.helper.getDepartmentId(company.name, payload.department_name)
+        const hashed_pass = await this.helper.hashPass(password)
+
+        const company_name = await this.helper.getCompany(company)
+
+        const department_id = await this.helper.getDepartmentId(company_name.name, department_name)
 
         const newUser = await this.prisma.employee.create({
             data: {
-                email: payload.email,
-                first_name: payload.first_name,
-                last_name: payload.last_name,
-                department_id: department_id,
+                email,
+                first_name,
+                last_name,
+                department_id,
+                password: hashed_pass
             },
         })
 

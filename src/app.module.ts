@@ -9,6 +9,7 @@ import { MayanAdminModule } from './modules/mayan-admin/mayan-admin.module';
 import { HelperModule } from './modules/helper/helper.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
+import { UserModule } from './modules/user/user.module';
 
 @Module({
   imports: [
@@ -20,7 +21,8 @@ import { ConfigModule } from '@nestjs/config';
     PrismaModule,
     MayanAdminModule,
     HelperModule,
-    AuthModule,],
+    AuthModule,
+    UserModule,],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })
