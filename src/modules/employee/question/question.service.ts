@@ -3,7 +3,7 @@ import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { Question } from '@prisma/client'
 import { AnswerModel } from 'src/types/answer';
 import { HelperService } from 'src/modules/helper/helper.service';
-import { UserPayload } from 'src/types/payload';
+import { JwtPayload } from 'src/types/jwt-payload';
 
 @Injectable()
 export class QuestionService {
@@ -12,19 +12,9 @@ export class QuestionService {
         private readonly helper: HelperService
     ) { }
 
+    async generateQuestion(user_jwt: JwtPayload) {
 
-    async getAllQuestions(domain?: string): Promise<Question[]> {
-
-        return this.prisma.question.findMany({
-            where: domain ? { domain } : undefined
-        });
-    }
-
-    async generateQuestion(payload: UserPayload) {
-
-        const { company, email } = payload
-
-        if (!company || !email) throw new BadRequestException("Invalid Payload")
+        const { company, sub } = user_jwt
 
         const company_name = await this.helper.getCompany(company)
 
@@ -37,7 +27,7 @@ export class QuestionService {
         const user = await this.prisma.employee_Under_Batch.findFirst({
             where: {
                 batch_id: batch.id,
-                email
+                email: sub
             }
         })
 
@@ -69,11 +59,11 @@ export class QuestionService {
         return questions
     }
 
-    async submitAnswers(data: AnswerModel[], user_data: UserPayload) {
+    async submitAnswers(data: AnswerModel[], user_data: JwtPayload) {
 
         if (!data || !user_data) throw new BadRequestException("Invalid Payload!")
 
-        const { email, company } = user_data
+        const { sub, company } = user_data
 
         const company_name = await this.helper.getCompany(company)
 
@@ -84,7 +74,7 @@ export class QuestionService {
         const user = await this.prisma.employee_Under_Batch.findFirst({
             where: {
                 batch_id: batch.id,
-                email
+                email: sub
             }
         })
 
@@ -108,7 +98,7 @@ export class QuestionService {
                 where: {
                     email_batch_id: {
                         batch_id: batch.id,
-                        email
+                        email: sub
                     }
                 },
                 data: {
