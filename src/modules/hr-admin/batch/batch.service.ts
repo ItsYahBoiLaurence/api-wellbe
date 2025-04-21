@@ -1,6 +1,7 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HelperService } from 'src/modules/helper/helper.service';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
+import { JwtPayload } from 'src/types/jwt-payload';
 
 @Injectable()
 export class BatchService {
@@ -9,7 +10,11 @@ export class BatchService {
         private readonly helper: HelperService
     ) { }
 
-    async startBatch(company: string) {
+    async startBatch(user_data: JwtPayload) {
+
+        const { company, role } = user_data
+
+        if (role === "employee") throw new ForbiddenException()
 
         if (!company) throw new BadRequestException('Invalid Payload')
 
