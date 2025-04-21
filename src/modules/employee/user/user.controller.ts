@@ -3,6 +3,8 @@ import { UserService } from './user.service';
 import { UserModel, UserQuery } from 'src/types/user';
 import { HelperService } from 'src/modules/helper/helper.service';
 import { Public } from 'src/common/decorators/public.decorators';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { JwtPayload } from 'src/types/jwt-payload';
 
 @Controller('user')
 export class UserController {
@@ -12,8 +14,8 @@ export class UserController {
     ) { }
 
     @Get()
-    getUser(@Query() query: UserQuery) {
-        return this.helper.getUserIdByEmail(query)
+    getUser(@CurrentUser() user_data: JwtPayload) {
+        return this.helper.getUserIdByEmail(user_data)
     }
 
     @Public()

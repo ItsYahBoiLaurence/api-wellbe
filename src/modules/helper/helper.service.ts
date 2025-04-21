@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { PrismaService } from '../prisma/prisma.service';
 import { UserQuery } from 'src/types/user';
 import * as bcrypt from 'bcrypt'
+import { JwtPayload } from 'src/types/jwt-payload';
 
 @Injectable()
 export class HelperService {
@@ -38,23 +39,26 @@ export class HelperService {
         return department.id
     }
 
-    async getUserIdByEmail(query: UserQuery) {
+    async getUserIdByEmail(user_data: JwtPayload) {
 
-        //Ensure that the company name and email is valid/not empty
+        const { sub, company } = user_data
 
         const userDetails = await this.prisma.employee.findUnique({
             where: {
-                email: query.email,
+                email: sub,
                 department: {
                     company: {
-                        name: query.company
+                        name: company
                     }
                 }
+            },
+            omit: {
+                password: true,
+                role: true
             },
             include: {
                 department: {
                     select: {
-                        id: true,
                         name: true,
                         company: {
                             select: {
@@ -63,10 +67,10 @@ export class HelperService {
                         }
                     }
                 }
-            }
+            },
         })
 
-        if (!userDetails) throw new NotFoundException(`User with the email of ${query.email} does not exist!`)
+        if (!userDetails) throw new NotFoundException(`User with the email of ${sub} does not exist!`)
 
         return userDetails
     }
