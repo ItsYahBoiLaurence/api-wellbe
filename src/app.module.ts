@@ -10,6 +10,8 @@ import { HelperModule } from './modules/helper/helper.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './modules/user/user.module';
+import { APP_GUARD } from '@nestjs/core';
+import { AuthGuard } from './modules/auth/auth.guard';
 
 @Module({
   imports: [
@@ -22,8 +24,9 @@ import { UserModule } from './modules/user/user.module';
     MayanAdminModule,
     HelperModule,
     AuthModule,
-    UserModule,],
+    UserModule,
+  ],
   controllers: [AppController],
-  providers: [AppService, PrismaService],
+  providers: [AppService, PrismaService, { provide: APP_GUARD, useClass: AuthGuard }],
 })
 export class AppModule { }
