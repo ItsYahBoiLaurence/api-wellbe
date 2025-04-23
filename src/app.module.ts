@@ -12,6 +12,7 @@ import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './modules/user/user.module';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './modules/auth/auth.guard';
+import { CronModule } from './modules/cron/cron.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { AuthGuard } from './modules/auth/auth.guard';
     HelperModule,
     AuthModule,
     UserModule,
+    CronModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService, { provide: APP_GUARD, useClass: AuthGuard }],

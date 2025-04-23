@@ -197,6 +197,9 @@ export class HelperService {
                 created_at: 'desc'
             }
         })
+
+        if (!latest_batch) throw new NotFoundException("No available batch")
+
         return latest_batch
     }
 
@@ -206,5 +209,9 @@ export class HelperService {
 
     async comparePass(password: string, hashed_pass: string) {
         return await bcrypt.compare(password, hashed_pass)
+    }
+
+    async transformString(text: string) {
+        return text.toLowerCase().replace(' ', '-')
     }
 }
