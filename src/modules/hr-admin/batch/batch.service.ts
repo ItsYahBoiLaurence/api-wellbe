@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { CronService } from 'src/modules/cron/cron.service';
 import { HelperService } from 'src/modules/helper/helper.service';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { JwtPayload } from 'src/types/jwt-payload';
@@ -7,7 +8,8 @@ import { JwtPayload } from 'src/types/jwt-payload';
 export class BatchService {
     constructor(
         private readonly prisma: PrismaService,
-        private readonly helper: HelperService
+        private readonly helper: HelperService,
+        private readonly cron: CronService
     ) { }
 
     async startBatch(user_data: JwtPayload) {
@@ -76,6 +78,12 @@ export class BatchService {
         })
 
         if (!employeeEmails) throw new ConflictException('Batch generation failed!')
+
+        Logger.log("===========")
+        Logger.log(`The batch has started and set 1 questions were released.`)
+        Logger.log("===========")
+
+        this.cron.addCronJob(company_name.name)
 
         return { message: "Batch started successfully!" }
     }

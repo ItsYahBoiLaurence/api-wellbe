@@ -21,10 +21,8 @@ export class CronService {
     private async startCompanyCronJob(company_name: string) {
         const company = await this.helper.getCompany(company_name)
         const batch = await this.helper.getLatestBatch(company.name)
-        Logger.log("===========")
-        Logger.log("Email sent!")
-        Logger.log("===========")
-        if (batch?.current_set_number === 5) {
+
+        if (batch?.current_set_number >= 5) {
             await this.prisma.batch_Record.update({
                 where: {
                     id: batch.id
@@ -37,12 +35,14 @@ export class CronService {
             Logger.log("The Batch ended!")
             return
         }
+        Logger.log("===========")
+        Logger.log(`Questions were sent for the Batch ${batch.current_set_number + 1}`)
+        Logger.log("===========")
+
         await this.prisma.batch_Record.update({
             where: { id: batch?.id },
             data: { current_set_number: batch?.current_set_number + 1 }
         })
-
-
     }
 
     addCronJob(company: string) {
