@@ -79,11 +79,15 @@ export class BatchService {
 
         if (!employeeEmails) throw new ConflictException('Batch generation failed!')
 
-        Logger.log("===========")
+        Logger.log("=====SEND EMAIL======")
         Logger.log(`The batch has started and set 1 questions were released.`)
         Logger.log("===========")
 
-        this.cron.addCronJob(company_name.name)
+        Logger.log("======SEND EMAIL=====")
+        Logger.log(employeeEmails)
+        Logger.log("===========")
+
+        this.cron.addCronJob(company_name.name, employeeEmails)
 
         return { message: "Batch started successfully!" }
     }

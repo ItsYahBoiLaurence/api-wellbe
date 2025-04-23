@@ -18,7 +18,7 @@ export class CronService {
         return text.toLowerCase().replace(' ', '-')
     }
 
-    private async startCompanyCronJob(company_name: string) {
+    private async startCompanyCronJob(company_name: string, emails: string[]) {
         const company = await this.helper.getCompany(company_name)
         const batch = await this.helper.getLatestBatch(company.name)
 
@@ -35,8 +35,13 @@ export class CronService {
             Logger.log("The Batch ended!")
             return
         }
+
         Logger.log("===========")
         Logger.log(`Questions were sent for the Batch ${batch.current_set_number + 1}`)
+        Logger.log("===========")
+
+        Logger.log("===========")
+        Logger.log(emails)
         Logger.log("===========")
 
         await this.prisma.batch_Record.update({
@@ -45,7 +50,7 @@ export class CronService {
         })
     }
 
-    addCronJob(company: string) {
+    addCronJob(company: string, emails: string[]) {
         const jobName = `${this.stringTransformer(company)}-company-job`
 
         if (this.scheduleRegistry.doesExist('cron', jobName)) {
@@ -53,7 +58,7 @@ export class CronService {
         }
 
         const job = new CronJob(CronExpression.EVERY_10_SECONDS, () => {
-            this.startCompanyCronJob(company)
+            this.startCompanyCronJob(company, emails)
         })
 
         this.scheduleRegistry.addCronJob(jobName, job)

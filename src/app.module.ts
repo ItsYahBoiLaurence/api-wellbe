@@ -13,6 +13,7 @@ import { UserModule } from './modules/user/user.module';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './modules/auth/auth.guard';
 import { CronModule } from './modules/cron/cron.module';
+import { EmailerModule } from './modules/emailer/emailer.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { CronModule } from './modules/cron/cron.module';
     AuthModule,
     UserModule,
     CronModule,
+    EmailerModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService, { provide: APP_GUARD, useClass: AuthGuard }],

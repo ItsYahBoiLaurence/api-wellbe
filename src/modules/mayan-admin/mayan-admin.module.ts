@@ -6,9 +6,10 @@ import { HelperModule } from '../helper/helper.module';
 import { UserModule } from '../user/user.module';
 import { AuthService } from '../auth/auth.service';
 import { CronModule } from '../cron/cron.module';
+import { EmailerModule } from '../emailer/emailer.module';
 
 @Module({
-  imports: [PrismaModule, HelperModule, UserModule, CronModule, HelperModule],
+  imports: [PrismaModule, HelperModule, UserModule, CronModule, HelperModule, EmailerModule],
   providers: [MayanAdminService],
   controllers: [MayanAdminController]
 })

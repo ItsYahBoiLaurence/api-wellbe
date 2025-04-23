@@ -1,16 +1,15 @@
-import { Body, Controller, Get, Logger, Param, Post, Query, Request } from '@nestjs/common';
+import { Controller, Get, Logger, Query, } from '@nestjs/common';
 import { MayanAdminService } from './mayan-admin.service';
-import { CompanyModel } from 'src/types/company';
-import { CurrentUser } from 'src/common/decorators/current-user.decorator';
-import { JwtPayload } from 'src/types/jwt-payload';
 import { CronService } from '../cron/cron.service';
+import { EmailerService } from '../emailer/emailer.service';
 
 
 @Controller('mayan-admin')
 export class MayanAdminController {
     constructor(
         private readonly service: MayanAdminService,
-        private readonly cron: CronService
+        private readonly cron: CronService,
+        private readonly emailer: EmailerService
     ) { }
 
     // @Get()
@@ -26,6 +25,7 @@ export class MayanAdminController {
 
     @Get()
     startCronJob(@Query('company') company: string) {
-        return this.cron.addCronJob(company)
+        Logger.log(company)
+        return this.emailer.sendEmail()
     }
 }
