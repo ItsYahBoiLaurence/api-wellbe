@@ -225,5 +225,13 @@ export class HelperService {
         return text.toLowerCase().replace(' ', '-')
     }
 
-
+    async getCompanyConfig(name: string) {
+        const setting = await this.prisma.settings.findFirst({
+            where: {
+                config_id: name
+            }
+        })
+        if (!setting) throw new NotFoundException(`No setting found for ${name} company`)
+        return setting
+    }
 }

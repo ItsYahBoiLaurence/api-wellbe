@@ -16,10 +16,10 @@ export class MayanAdminController {
         private readonly helper: HelperService
     ) { }
 
-    @Get()
-    async getProfile(@CurrentUser() user: JwtPayload) {
-        return this.helper.getUserIdByEmail(user)
-    }
+    // @Get()
+    // async getProfile(@CurrentUser() user: JwtPayload) {
+    //     return this.helper.getUserIdByEmail(user)
+    // }
 
     // @Post()
     // sayHello(@Body() payload: CompanyModel) {
@@ -33,4 +33,9 @@ export class MayanAdminController {
     //     return this.emailer.welcomeEmail()
     // }
 
+    @Get()
+    getSettings(@CurrentUser() user: JwtPayload) {
+        const { company } = user
+        return this.helper.getCompanyConfig(company)
+    }
 }

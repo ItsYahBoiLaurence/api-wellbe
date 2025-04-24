@@ -15,6 +15,7 @@ model Company {
   created_at   DateTime       @default(now())
   departments  Department[]
   batch_record Batch_Record[]
+  Settings     Settings[]
 }
 
 model Department {
@@ -79,4 +80,15 @@ model Answer {
   answer      Json
   employee_id Int
   employee    Employee_Under_Batch @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+}
+
+enum Frequency {
+  DAILY
+  WEEKLY
+}
+
+model Settings {
+  config_id String    @id
+  company   Company   @relation(fields: [config_id], references: [name], onDelete: Cascade)
+  frequency Frequency @default(DAILY)
 }
