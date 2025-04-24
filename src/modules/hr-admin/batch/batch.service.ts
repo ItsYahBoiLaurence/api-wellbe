@@ -87,7 +87,7 @@ export class BatchService {
                 to: email,
                 subject: "The Batch has Started",
                 company: company_name.name,
-                user: user?.first_name as string
+                user: user.first_name
             }
             try {
                 this.emailer.welcomeEmail(email_payload)

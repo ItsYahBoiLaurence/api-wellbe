@@ -316,7 +316,6 @@ export class EmailerService {
       html: this.reminderTemplate({ company, user, left })
     })
   }
-
   //deadline reminder email
   async deadlineEmail() { }
 }

@@ -22,6 +22,16 @@ export class HelperService {
         return company
     }
 
+    async getUserByEmail(email: string) {
+        const user = await this.prisma.employee.findFirst({
+            where: {
+                email
+            }
+        })
+        if (!user) throw new NotFoundException("User doesn't exist")
+        return user
+    }
+
     async getDepartmentId(company_name: string, department_name: string) {
         if (!company_name || !department_name) throw new BadRequestException()
 
@@ -215,13 +225,5 @@ export class HelperService {
         return text.toLowerCase().replace(' ', '-')
     }
 
-    async getUserByEmail(email: string) {
-        const user = this.prisma.employee.findUnique({
-            where: {
-                email
-            }
-        })
-        if (!user) return null
-        return user
-    }
+
 }
