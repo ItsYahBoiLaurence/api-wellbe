@@ -24,6 +24,10 @@ export class BatchService {
 
         const company_name = await this.helper.getCompany(company)
 
+        const company_config = await this.helper.getCompanyConfig(company_name.name)
+
+        Logger.log(company_config.frequency)
+
         const employees = await this.prisma.company.findUnique({
             where: {
                 name: company
@@ -60,11 +64,15 @@ export class BatchService {
                 created_at: start,
                 start_date: start,
                 end_date: end,
-                company_name: company_name.name
+                company_name: company_name.name,
+                frequency: company_config.frequency
             }
         })
 
         if (!newBatch) throw new ConflictException('Batch generation failed!')
+
+        //change the cronstring to 10 everyday and 10 every monday of the week
+        const batch_frequency = newBatch.frequency === "DAILY" ? "*/10 * * * * *" : "*/5 * * * * *"
 
         employeeEmails.map(async (email) => {
             const questions = await this.helper.generateBatchQuestions()
@@ -96,7 +104,7 @@ export class BatchService {
             }
         })
 
-        this.cron.addCronJob(company_name.name, employeeEmails)
+        this.cron.addCronJob(company_name.name, employeeEmails, batch_frequency)
 
         return { message: "Batch started successfully!" }
     }

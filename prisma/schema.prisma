@@ -58,6 +58,7 @@ model Batch_Record {
   company               Company                @relation(fields: [company_name], references: [name], onDelete: Cascade)
   current_set_number    Int                    @default(1)
   employees_under_batch Employee_Under_Batch[]
+  frequency             Frequency
 }
 
 model Employee_Under_Batch {

@@ -72,16 +72,17 @@ export class CronService {
             where: { id: batch?.id },
             data: { current_set_number: batch?.current_set_number + 1 }
         })
+        // Logger.log('asd')
     }
 
-    addCronJob(company: string, emails: string[]) {
+    addCronJob(company: string, emails: string[], cronString: string) {
         const jobName = `${this.stringTransformer(company)}-company-job`
 
         if (this.scheduleRegistry.doesExist('cron', jobName)) {
             return { message: `CronJob already working under ${company}` }
         }
 
-        const job = new CronJob(CronExpression.EVERY_MINUTE, () => {
+        const job = new CronJob(cronString, () => {
             this.startCompanyCronJob(company, emails)
         })
 
