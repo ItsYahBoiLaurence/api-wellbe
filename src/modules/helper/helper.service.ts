@@ -214,4 +214,14 @@ export class HelperService {
     async transformString(text: string) {
         return text.toLowerCase().replace(' ', '-')
     }
+
+    async getUserByEmail(email: string) {
+        const user = this.prisma.employee.findUnique({
+            where: {
+                email
+            }
+        })
+        if (!user) return null
+        return user
+    }
 }

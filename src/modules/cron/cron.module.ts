@@ -3,9 +3,10 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { CronService } from './cron.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { HelperModule } from '../helper/helper.module';
+import { EmailerModule } from '../emailer/emailer.module';
 
 @Module({
-    imports: [ScheduleModule.forRoot(), PrismaModule, HelperModule],
+    imports: [ScheduleModule.forRoot(), PrismaModule, HelperModule, EmailerModule],
     providers: [CronService],
     exports: [CronService]
 })

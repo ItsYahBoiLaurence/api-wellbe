@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CronService } from 'src/modules/cron/cron.service';
+import { EmailerService } from 'src/modules/emailer/emailer.service';
 import { HelperService } from 'src/modules/helper/helper.service';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { JwtPayload } from 'src/types/jwt-payload';
@@ -9,7 +10,8 @@ export class BatchService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly helper: HelperService,
-        private readonly cron: CronService
+        private readonly cron: CronService,
+        private readonly emailer: EmailerService
     ) { }
 
     async startBatch(user_data: JwtPayload) {
@@ -79,13 +81,20 @@ export class BatchService {
 
         if (!employeeEmails) throw new ConflictException('Batch generation failed!')
 
-        Logger.log("=====SEND EMAIL======")
-        Logger.log(`The batch has started and set 1 questions were released.`)
-        Logger.log("===========")
-
-        Logger.log("======SEND EMAIL=====")
-        Logger.log(employeeEmails)
-        Logger.log("===========")
+        employeeEmails.map(async (email) => {
+            const user = await this.helper.getUserByEmail(email)
+            const email_payload = {
+                to: email,
+                subject: "The Batch has Started",
+                company: company_name.name,
+                user: user?.first_name as string
+            }
+            try {
+                this.emailer.welcomeEmail(email_payload)
+            } catch (error) {
+                Logger.log(error)
+            }
+        })
 
         this.cron.addCronJob(company_name.name, employeeEmails)
 
