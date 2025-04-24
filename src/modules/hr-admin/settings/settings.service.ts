@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Frequency } from '@prisma/client';
 import { HelperModule } from 'src/modules/helper/helper.module';
 import { HelperService } from 'src/modules/helper/helper.service';
@@ -9,6 +9,20 @@ import { SettingsPayload } from 'src/types/settings';
 @Injectable()
 export class SettingsService {
     constructor(private readonly prisma: PrismaService, private readonly helper: HelperService) { }
+
+    async getSettings(user_details: JwtPayload) {
+        const { company } = user_details
+
+        const settings = await this.prisma.settings.findFirst({
+            where: {
+                config_id: company
+            }
+        })
+
+        if (!settings) throw new NotFoundException("Settings not found!")
+
+        return settings
+    }
 
     async updateSettings(user_details: JwtPayload, data_payload: SettingsPayload) {
         const { company, role } = user_details
