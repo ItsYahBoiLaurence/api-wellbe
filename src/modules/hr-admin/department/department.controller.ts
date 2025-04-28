@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { DepartmentService } from './department.service';
 import { Prisma } from '@prisma/client';
 import { DepartmentCreateModel } from 'src/types/department';
@@ -11,8 +11,8 @@ export class DepartmentController {
     constructor(private readonly departmentService: DepartmentService) { }
 
     @Get()
-    getAllDepartment(@CurrentUser() user_data: JwtPayload) {
-        return this.departmentService.getAllDepartment(user_data)
+    getAllDepartment(@CurrentUser() user_data: JwtPayload, @Query('department') department: string) {
+        return this.departmentService.getAllDepartment(user_data, department)
     }
 
     @Post()

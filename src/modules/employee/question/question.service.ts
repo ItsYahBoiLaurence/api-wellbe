@@ -83,7 +83,7 @@ export class QuestionService {
 
         if (user.set_participation?.[batch.current_set_number - 1] === true) throw new ConflictException('You already submitted your answer!')
 
-        const user_answer = await this.prisma.answer.create({
+        await this.prisma.answer.create({
             data: {
                 answer: data,
                 employee_id: user?.id
@@ -107,7 +107,6 @@ export class QuestionService {
             })
         }
 
-
-        return user_answer
+        return { message: "Answer Submitted successfully!" }
     }
 }

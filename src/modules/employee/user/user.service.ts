@@ -21,16 +21,28 @@ export class UserService {
 
         const department_id = await this.helper.getDepartmentId(company_name.name, department_name)
 
-        const newUser = await this.prisma.employee.create({
-            data: {
-                email,
-                first_name,
-                last_name,
-                department_id,
-                password: hashed_pass
-            },
-        })
+        try {
+            const newUser = await this.prisma.employee.create({
+                data: {
+                    email,
+                    first_name,
+                    last_name,
+                    department_id,
+                    password: hashed_pass
+                },
+            })
+            if (!newUser) throw new ConflictException("Error creating new user!")
 
-        return newUser
+            const resPayload = {
+                email: newUser.email,
+                first_name: newUser.first_name,
+                last_name: newUser.last_name
+            }
+
+            return resPayload
+        } catch (error) {
+            if (error.code === 'P2002') throw new ConflictException("User already exist!")
+            if (error.code === 'P2003') throw new NotFoundException('The specified company does not exist.');
+        }
     }
 }
