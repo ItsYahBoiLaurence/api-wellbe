@@ -81,8 +81,8 @@ export class BatchService {
                     email: email,
                     created_at: start,
                     question_bank: questions,
-                    answer_bank: questions,
                     batch_id: newBatch.id,
+                    department_id: await this.helper.getDepartmentIdByUserEmail(email)
                 }
             })
         })

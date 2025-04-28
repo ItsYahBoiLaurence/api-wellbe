@@ -234,4 +234,27 @@ export class HelperService {
         if (!setting) throw new NotFoundException(`No setting found for ${name} company`)
         return setting
     }
+
+    async getDepartmentIdByUserEmail(email: string) {
+        const employee = await this.prisma.employee.findUnique({
+            where: {
+                email
+            },
+        })
+        if (!employee) throw new NotFoundException("User not Found")
+        return employee.department_id
+    }
+
+    async getDepartment(company: string, department: string) {
+        const department_details = await this.prisma.department.findFirst({
+            where: {
+                company_id: company,
+                name: department
+            }
+        })
+
+        if (!department_details) throw new NotFoundException("Department not Found!")
+
+        return department_details
+    }
 }

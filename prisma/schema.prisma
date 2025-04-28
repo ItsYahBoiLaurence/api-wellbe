@@ -65,13 +65,13 @@ model Employee_Under_Batch {
   id                Int          @id @default(autoincrement())
   email             String
   question_bank     Json
-  answer_bank       Json
   is_completed      Boolean      @default(false)
   batch_id          Int
   batch             Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
   created_at        DateTime
   Answer            Answer[]
   set_participation Json         @default("[false,false,false,false,false]")
+  department_id     Int
 
   @@unique([email, batch_id])
 }
