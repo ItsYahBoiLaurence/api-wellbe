@@ -71,10 +71,12 @@ export class QuestionService {
 
         if (!batch) throw new NotFoundException("No Batch Available!")
 
-        const user = await this.prisma.employee_Under_Batch.findFirst({
+        const user = await this.prisma.employee_Under_Batch.findUnique({
             where: {
-                batch_id: batch.id,
-                email: sub
+                email_batch_id: {
+                    batch_id: batch.id,
+                    email: sub
+                }
             }
         })
 
@@ -90,7 +92,7 @@ export class QuestionService {
             }
         })
 
-        if (user && Array.isArray(user.set_participation)) {
+        if (Array.isArray(user.set_participation)) {
             const updatedPayload = [...user.set_participation]
             updatedPayload[batch.current_set_number - 1] = true
 
@@ -106,6 +108,8 @@ export class QuestionService {
                 }
             })
         }
+
+        this.helper.userCompletedTheBatch(sub, batch.id)
 
         return { message: "Answer Submitted successfully!" }
     }

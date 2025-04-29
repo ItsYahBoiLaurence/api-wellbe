@@ -35,7 +35,7 @@ export class MayanAdminController {
 
     @Get()
     getSettings(@CurrentUser() user: JwtPayload) {
-        const { company } = user
-        return this.helper.getCompanyConfig(company)
+        const { company, sub } = user
+        return this.helper.userCompletedTheBatch(sub, 82)
     }
 }

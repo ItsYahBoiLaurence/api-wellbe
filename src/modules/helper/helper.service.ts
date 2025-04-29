@@ -257,4 +257,31 @@ export class HelperService {
 
         return department_details
     }
+
+    async userCompletedTheBatch(email: string, batch_id: number) {
+
+        const payload = {
+            email_batch_id: {
+                email,
+                batch_id
+            }
+        }
+
+        const employee_batch_data = await this.prisma.employee_Under_Batch.findUnique({
+            where: payload
+        })
+
+        if (!employee_batch_data) throw new NotFoundException("User doens't belong to the batch!")
+
+        if (Array.isArray(employee_batch_data.set_participation)) {
+            const completed = [...employee_batch_data.set_participation].includes(false)
+
+            await this.prisma.employee_Under_Batch.update({
+                where: payload,
+                data: {
+                    is_completed: !completed
+                }
+            })
+        }
+    }
 }
