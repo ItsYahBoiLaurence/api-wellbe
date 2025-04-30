@@ -1,10 +1,11 @@
-import { Controller, Get, Logger, Query, } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Post, Query, } from '@nestjs/common';
 import { MayanAdminService } from './mayan-admin.service';
 import { CronService } from '../cron/cron.service';
 import { EmailerService } from '../emailer/emailer.service';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { JwtPayload } from 'src/types/jwt-payload';
 import { HelperService } from '../helper/helper.service';
+import { AnswerModel } from 'src/types/answer';
 
 
 @Controller('mayan-admin')
@@ -33,9 +34,9 @@ export class MayanAdminController {
     //     return this.emailer.welcomeEmail()
     // }
 
-    @Get()
-    getSettings(@CurrentUser() user: JwtPayload) {
+    @Post()
+    getSettings(@CurrentUser() user: JwtPayload, @Body() data: AnswerModel[]) {
         const { company, sub } = user
-        return this.helper.userCompletedTheBatch(sub, 82)
+        return this.helper.getAdviceForUser(data)
     }
 }

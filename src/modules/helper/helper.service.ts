@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UserQuery } from 'src/types/user';
 import * as bcrypt from 'bcrypt'
 import { JwtPayload } from 'src/types/jwt-payload';
+import { AnswerModel } from 'src/types/answer';
 
 @Injectable()
 export class HelperService {
@@ -283,5 +284,40 @@ export class HelperService {
                 }
             })
         }
+    }
+
+    async getExistingAdvice(sub_domain: string, score: number) {
+
+        const user_score = score == 4 ? "above_average" : score == 3 ? "average" : score == 2 ? "below_average" : score == 1 ? "low" : ""
+
+        const advice = await this.prisma.advice.findFirst({
+            where: {
+                sub_domain
+            },
+        })
+
+        if (!advice) throw new NotFoundException("Advice not Found!")
+
+        return advice[user_score]
+    }
+
+
+    async getAdviceForUser(data: AnswerModel[]) {
+
+        const advices: string[] = []
+
+        for (const obj of data) {
+            const [key, value] = Object.entries(obj)[0]
+            const question = await this.prisma.question.findUnique({
+                where: {
+                    id: Number(key)
+                }
+            })
+            if (!question) throw new NotFoundException("Question not Found!")
+
+            const advice = await this.getExistingAdvice(question.subdomain, value)
+            advices.push(advice)
+        }
+        return { message: advices.join(" ") }
     }
 }
