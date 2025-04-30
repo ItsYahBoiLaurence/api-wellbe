@@ -42,7 +42,7 @@ model Employee {
 }
 
 model Question {
-  id         Int     @unique(map: "Questions_id_key")
+  id         Int     @id @unique(map: "Questions_id_key")
   question   String
   is_flipped Boolean
   domain     String
@@ -93,4 +93,13 @@ model Settings {
   config_id String    @id
   company   Company   @relation(fields: [config_id], references: [name], onDelete: Cascade)
   frequency Frequency @default(DAILY)
+}
+
+model Advice {
+  id            Int    @id @default(autoincrement())
+  sub_domain    String
+  low           String
+  below_average String
+  average       String
+  above_average String
 }

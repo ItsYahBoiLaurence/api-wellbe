@@ -14,6 +14,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './modules/auth/auth.guard';
 import { CronModule } from './modules/cron/cron.module';
 import { EmailerModule } from './modules/emailer/emailer.module';
+import { OpenaiModule } from './modules/openai/openai.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { EmailerModule } from './modules/emailer/emailer.module';
     UserModule,
     CronModule,
     EmailerModule,
+    OpenaiModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService, { provide: APP_GUARD, useClass: AuthGuard }],
