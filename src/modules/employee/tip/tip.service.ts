@@ -11,16 +11,35 @@ export class TipService {
 
         const user = await this.helper.getUserByEmail(user_details.sub)
 
-        user.email
-
         const tipsBank = await this.prisma.tips.findMany({
             where: {
                 user: user.email
+            },
+            orderBy: {
+                created_at: 'desc'
             }
         })
 
         if (!tipsBank) throw new NotFoundException("Tips bank not found!")
 
         return tipsBank
+    }
+
+
+    async latestTip(user_details: JwtPayload) {
+
+        const user = await this.helper.getUserByEmail(user_details.sub)
+
+        const tip = await this.prisma.tips.findFirst({
+            where: {
+                user: user.email
+            }, orderBy: {
+                created_at: 'desc'
+            }
+        })
+
+        if (!tip) throw new NotFoundException("Tip not Found!")
+
+        return tip
     }
 }

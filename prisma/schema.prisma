@@ -42,7 +42,8 @@ model Employee {
 }
 
 model Tips {
-  user       String   @id
+  id         Int      @id @default(autoincrement())
+  user       String
   user_email Employee @relation(fields: [user], references: [email])
   tip        String
   created_at DateTime

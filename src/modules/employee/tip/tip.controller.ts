@@ -7,10 +7,14 @@ import { JwtPayload } from 'src/types/jwt-payload';
 export class TipController {
     constructor(private readonly service: TipService) { }
 
-
     @Get()
     getTipsBank(@CurrentUser() user: JwtPayload) {
         return this.service.getTip(user)
+    }
+
+    @Get('latest')
+    getLatestTip(@CurrentUser() user: JwtPayload) {
+        return this.service.latestTip(user)
     }
 }
 
