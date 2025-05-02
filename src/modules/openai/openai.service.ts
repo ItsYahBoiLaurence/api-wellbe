@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import OpenAI from 'openai';
+import OpenAI, { ConflictError } from 'openai';
 
 @Injectable()
 export class OpenaiService {
@@ -27,6 +27,8 @@ export class OpenaiService {
                 }],
             temperature: 0.9
         })
+
+        if (!response) throw new ConflictException("Error generating advice!")
 
         return response.choices[0].message.content
     }

@@ -5,7 +5,6 @@ import { CronJob } from 'cron'
 import { PrismaService } from '../prisma/prisma.service';
 import { HelperService } from '../helper/helper.service';
 import { EmailerService } from '../emailer/emailer.service';
-import { Subject } from 'rxjs';
 
 @Injectable()
 export class CronService {

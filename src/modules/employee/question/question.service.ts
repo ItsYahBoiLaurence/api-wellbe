@@ -38,8 +38,6 @@ export class QuestionService {
 
         if (user.set_participation?.[batch.current_set_number - 1] === true) throw new ConflictException('No question available!')
 
-
-
         if (Array.isArray(user.set_participation)) {
             const participation = [...user.set_participation]
             if (participation[participation.length - 1] === true) throw new ConflictException("You don't have any Questions left in the bank!")
@@ -91,7 +89,7 @@ export class QuestionService {
         await this.prisma.answer.create({
             data: {
                 answer: data,
-                employee_id: user?.id
+                employee_id: user.id
             }
         })
 
@@ -116,6 +114,22 @@ export class QuestionService {
 
         const advices = await this.helper.getAdviceForUser(data)
 
-        return await this.ai.generateTip(advices)
+
+        const tip = await this.ai.generateTip(advices)
+
+        if (!tip) throw new ConflictException("Error generating Advice!")
+
+
+        const isSaved = await this.prisma.tips.create({
+            data: {
+                user: user.email,
+                tip,
+                created_at: this.helper.getCurrentDate()
+            }
+        })
+
+        if (!isSaved) throw new ConflictException("Error saving tip!")
+
+        return { message: "Answer submitted successfully!" }
     }
 }

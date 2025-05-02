@@ -323,4 +323,10 @@ export class HelperService {
         }
         return advices.join(" ")
     }
+
+    getCurrentDate() {
+        const date = new Date
+        date.setHours(date.getHours() + 8)
+        return date
+    }
 }
