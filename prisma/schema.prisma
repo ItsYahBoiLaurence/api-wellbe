@@ -6,8 +6,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  // uncomment next line if you use Prisma <5.10
-  // directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model Company {
@@ -31,14 +29,30 @@ model Department {
 }
 
 model Employee {
-  id            Int        @id @default(autoincrement())
+  id            Int          @id @default(autoincrement())
   first_name    String
   last_name     String
-  email         String     @unique
+  email         String       @unique
   password      String
-  role          String     @default("employee")
+  role          String       @default("employee")
   department_id Int
-  department    Department @relation(fields: [department_id], references: [id], onDelete: Cascade)
+  department    Department   @relation(fields: [department_id], references: [id], onDelete: Cascade)
+  tips          Tips[]
+  advices       UserAdvice[]
+}
+
+model Tips {
+  user       String   @id
+  user_email Employee @relation(fields: [user], references: [email])
+  tip        String
+  created_at DateTime
+}
+
+model UserAdvice {
+  user       String   @id
+  user_email Employee @relation(fields: [user], references: [email])
+  advice     String
+  created_at DateTime
 }
 
 model Question {

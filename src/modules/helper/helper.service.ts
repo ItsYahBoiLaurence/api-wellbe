@@ -289,6 +289,9 @@ export class HelperService {
     async getExistingAdvice(sub_domain: string, score: number) {
 
         const user_score = score == 4 ? "above_average" : score == 3 ? "average" : score == 2 ? "below_average" : score == 1 ? "low" : ""
+        Logger.log("----------------")
+        Logger.log(sub_domain)
+        Logger.log("----------------")
 
         const advice = await this.prisma.advice.findFirst({
             where: {
