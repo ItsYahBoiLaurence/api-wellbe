@@ -4,12 +4,15 @@ import { Question } from '@prisma/client'
 import { AnswerModel } from 'src/types/answer';
 import { HelperService } from 'src/modules/helper/helper.service';
 import { JwtPayload } from 'src/types/jwt-payload';
+import { OpenaiService } from 'src/modules/openai/openai.service';
+import { randomFill } from 'crypto';
 
 @Injectable()
 export class QuestionService {
     constructor(
         private readonly prisma: PrismaService,
-        private readonly helper: HelperService
+        private readonly helper: HelperService,
+        private readonly ai: OpenaiService
     ) { }
 
     async generateQuestion(user_jwt: JwtPayload) {
@@ -111,6 +114,8 @@ export class QuestionService {
 
         this.helper.userCompletedTheBatch(sub, batch.id)
 
-        return { message: "Answer Submitted successfully!" }
+        const advices = await this.helper.getAdviceForUser(data)
+
+        return await this.ai.generateTip(advices)
     }
 }

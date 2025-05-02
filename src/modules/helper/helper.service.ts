@@ -318,6 +318,6 @@ export class HelperService {
             const advice = await this.getExistingAdvice(question.subdomain, value)
             advices.push(advice)
         }
-        return { message: advices.join(" ") }
+        return advices.join(" ")
     }
 }

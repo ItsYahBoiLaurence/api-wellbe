@@ -6,6 +6,7 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { JwtPayload } from 'src/types/jwt-payload';
 import { HelperService } from '../helper/helper.service';
 import { AnswerModel } from 'src/types/answer';
+import { OpenaiService } from '../openai/openai.service';
 
 
 @Controller('mayan-admin')
@@ -14,7 +15,8 @@ export class MayanAdminController {
         private readonly service: MayanAdminService,
         private readonly cron: CronService,
         private readonly emailer: EmailerService,
-        private readonly helper: HelperService
+        private readonly helper: HelperService,
+        private readonly ai: OpenaiService
     ) { }
 
     // @Get()
@@ -39,4 +41,9 @@ export class MayanAdminController {
         const { company, sub } = user
         return this.helper.getAdviceForUser(data)
     }
+
+    // @Get()
+    // generateAiResponse() {
+    //     return this.ai.generateTip()
+    // }
 }
