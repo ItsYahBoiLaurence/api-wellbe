@@ -42,8 +42,8 @@ export class MayanAdminController {
         return this.helper.getAdviceForUser(data)
     }
 
-    // @Get()
-    // generateAiResponse() {
-    //     return this.ai.generateTip()
-    // }
+    @Get()
+    generateAiResponse() {
+        return this.helper.getBatchTips(86, 'laurence@mayan.com.ph')
+    }
 }

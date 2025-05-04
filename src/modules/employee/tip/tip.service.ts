@@ -1,11 +1,16 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HelperService } from 'src/modules/helper/helper.service';
+import { OpenaiService } from 'src/modules/openai/openai.service';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { JwtPayload } from 'src/types/jwt-payload';
 
 @Injectable()
 export class TipService {
-    constructor(private readonly prisma: PrismaService, private readonly helper: HelperService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly helper: HelperService,
+        private readonly ai: OpenaiService
+    ) { }
 
     async getTip(user_details: JwtPayload) {
 
@@ -44,10 +49,73 @@ export class TipService {
     }
 
     async getHolisticTip(user_details: JwtPayload) {
-        return "something"
+
+        const { sub, company } = user_details
+
+        const user = await this.helper.getUserByEmail(sub)
+
+        const latest_batch = await this.helper.getLatestBatch(company)
+
+        const holistic_tip = await this.prisma.userAdvice.findUnique({
+            where: {
+                user: user.email,
+                bactch_created: latest_batch.id
+            }
+        })
+
+        if (!holistic_tip) throw new NotFoundException("Tip not found!")
+
+        return holistic_tip.advice
     }
 
     async generateHolisticTip(user_details: JwtPayload) {
+        const { sub, company } = user_details
 
+        const user = await this.helper.getUserByEmail(sub)
+        const company_details = await this.helper.getCompany(company)
+
+        const latest_batch = await this.helper.getLatestBatch(company_details.name)
+
+        const user_batch_data = await this.prisma.employee_Under_Batch.findFirst({
+            where: {
+                email: user.email,
+                batch_id: latest_batch.id
+            },
+        })
+
+        if (!user_batch_data) throw new NotFoundException("User not in current batch!")
+
+        if (!user_batch_data.is_completed) throw new ConflictException("User record not completed!")
+
+        const tips = await this.helper.getBatchTips(latest_batch.id, user.email)
+
+        const wellbeing = await this.prisma.wellbeing.findFirst({
+            where: {
+                batch_id: latest_batch.id,
+                user_email: user.email
+            }
+        })
+
+        if (!wellbeing) throw new ConflictException("Wellbeing not generated!")
+
+        const ai_tip = await this.ai.generateHolisticTip(tips, wellbeing)
+
+        if (!ai_tip) throw new ConflictException("Error generating holistic tip!")
+
+        const date = new Date
+        date.setHours(date.getHours() + 8)
+
+        const holistic_tip = await this.prisma.userAdvice.create({
+            data: {
+                user: user.email,
+                advice: ai_tip,
+                created_at: this.helper.getCurrentDate(),
+                bactch_created: latest_batch.id
+            }
+        })
+
+        if (!holistic_tip) throw new ConflictException("Error saving Advice")
+
+        return { message: "Successful holistic tip generation!" }
     }
 }

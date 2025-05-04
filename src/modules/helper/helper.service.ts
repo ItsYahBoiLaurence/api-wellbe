@@ -329,4 +329,29 @@ export class HelperService {
         date.setHours(date.getHours() + 8)
         return date
     }
+
+
+    async getBatchTips(batch_id: number, user: string) {
+
+        const tips_bank: string[] = []
+
+        const tips = await this.prisma.tips.findMany({
+            where: {
+                user,
+                batch_created: batch_id
+            },
+            select: {
+                tip: true
+            }
+        })
+
+        if (!tips) throw new NotFoundException("Tips not Found!")
+
+        for (const obj of tips) {
+            const [key, value] = Object.entries(tips)[0]
+            tips_bank.push(value.tip)
+        }
+
+        return tips_bank.join(" ")
+    }
 }

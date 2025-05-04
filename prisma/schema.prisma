@@ -43,18 +43,20 @@ model Employee {
 }
 
 model Tips {
-  id         Int      @id @default(autoincrement())
-  user       String
-  user_email Employee @relation(fields: [user], references: [email])
-  tip        String
-  created_at DateTime
+  id            Int      @id @default(autoincrement())
+  user          String
+  user_email    Employee @relation(fields: [user], references: [email])
+  tip           String
+  created_at    DateTime
+  batch_created Int
 }
 
 model UserAdvice {
-  user       String   @id
-  user_email Employee @relation(fields: [user], references: [email])
-  advice     String
-  created_at DateTime
+  user           String   @id
+  user_email     Employee @relation(fields: [user], references: [email])
+  advice         String
+  created_at     DateTime
+  bactch_created Int
 }
 
 model Question {

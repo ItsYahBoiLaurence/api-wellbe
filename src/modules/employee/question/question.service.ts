@@ -124,7 +124,8 @@ export class QuestionService {
             data: {
                 user: user.email,
                 tip,
-                created_at: this.helper.getCurrentDate()
+                created_at: this.helper.getCurrentDate(),
+                batch_created: batch.id
             }
         })
 

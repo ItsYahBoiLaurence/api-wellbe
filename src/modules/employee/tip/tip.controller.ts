@@ -27,5 +27,3 @@ export class TipController {
         return this.service.generateHolisticTip(user)
     }
 }
-
-
