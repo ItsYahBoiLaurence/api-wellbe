@@ -29,16 +29,17 @@ model Department {
 }
 
 model Employee {
-  id            Int          @id @default(autoincrement())
-  first_name    String
-  last_name     String
-  email         String       @unique
-  password      String
-  role          String       @default("employee")
-  department_id Int
-  department    Department   @relation(fields: [department_id], references: [id], onDelete: Cascade)
-  tips          Tips[]
-  advices       UserAdvice[]
+  id              Int          @id @default(autoincrement())
+  first_name      String
+  last_name       String
+  email           String       @unique
+  password        String
+  role            String       @default("employee")
+  department_id   Int
+  department      Department   @relation(fields: [department_id], references: [id], onDelete: Cascade)
+  tips            Tips[]
+  advices         UserAdvice[]
+  wellbeing_score Wellbeing[]
 }
 
 model Tips {
@@ -75,6 +76,7 @@ model Batch_Record {
   current_set_number    Int                    @default(1)
   employees_under_batch Employee_Under_Batch[]
   frequency             Frequency
+  Wellbeing             Wellbeing[]
 }
 
 model Employee_Under_Batch {
@@ -117,4 +119,14 @@ model Advice {
   below_average String
   average       String
   above_average String
+}
+
+model Wellbeing {
+  id              Int          @id @default(autoincrement())
+  user_email      String
+  user            Employee     @relation(fields: [user_email], references: [email], onDelete: Cascade)
+  created_at      DateTime
+  wellbeing_score Json
+  batch_id        Int
+  batch           Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
 }

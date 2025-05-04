@@ -11,6 +11,9 @@ export class WellbeingService {
 
     async generateUserWellbeing(user: JwtPayload) {
 
+        const start = new Date()
+        start.setHours(start.getHours() + 8)
+
         const { company, sub } = user
 
         const latest_batch = await this.helper.getLatestBatch(company)
@@ -35,9 +38,43 @@ export class WellbeingService {
 
         if (!user_answers) throw new NotFoundException("User has no Answer!")
 
-        return this.compute_wellbeing(user_answers);
+        const wellbeing_score = this.compute_wellbeing(user_answers);
+
+        const wellbeing = await this.prisma.wellbeing.create({
+            data: {
+                user_email: user_batch_data.email,
+                created_at: start,
+                wellbeing_score,
+                batch_id: latest_batch.id
+            }
+        })
+
+
+
+        if (!wellbeing) throw new ConflictException("Error saving score!")
+
+        return { message: "Successful wellbeing score generation!" }
     }
 
+    async getUserWellbeing(user_details: JwtPayload) {
+
+        const { sub } = user_details
+
+        const user = await this.helper.getUserByEmail(sub)
+
+        const score = await this.prisma.wellbeing.findFirst({
+            where: {
+                user_email: user.email
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        })
+
+        if (!score) throw new NotFoundException("Score not found!")
+
+        return score.wellbeing_score
+    }
 
     private compute_wellbeing(user_answers: { answer: JsonValue }[]) {
         const domains: Record<string, DomainStats> = {

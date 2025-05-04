@@ -42,4 +42,12 @@ export class TipService {
 
         return tip
     }
+
+    async getHolisticTip(user_details: JwtPayload) {
+        return "something"
+    }
+
+    async generateHolisticTip(user_details: JwtPayload) {
+
+    }
 }

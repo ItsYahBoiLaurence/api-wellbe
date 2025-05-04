@@ -16,6 +16,16 @@ export class TipController {
     getLatestTip(@CurrentUser() user: JwtPayload) {
         return this.service.latestTip(user)
     }
+
+    @Get('holistic')
+    getHolisticTip(@CurrentUser() user: JwtPayload) {
+        return this.service.getHolisticTip(user)
+    }
+
+    @Get('holistic/generate')
+    generateHolisticTip(@CurrentUser() user: JwtPayload) {
+        return this.service.generateHolisticTip(user)
+    }
 }
 
 
