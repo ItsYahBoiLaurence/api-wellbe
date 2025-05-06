@@ -33,5 +33,5 @@ jobs:
 
       - name: Run SSH Command
         run: |
-            ssh ${{ secrets.USER }}@${{ secrets.HOST }} "touch test.txt"
+            ssh ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} "touch test.txt"
             
