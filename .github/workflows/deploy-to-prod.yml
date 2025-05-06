@@ -17,7 +17,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '22.15'
+          node-version: '22'
 
       - name: Install dependencies
         run: yarn install
@@ -33,5 +33,11 @@ jobs:
 
       - name: Run SSH Command
         run: |
-            ssh ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} "touch test.txt"
+            ssh ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} << 'EOF'
+                cd api-wellbe
+                git pull origin main
+                yarn install 
+                yarn build
+                pm2 reload all
+            EOF
             
