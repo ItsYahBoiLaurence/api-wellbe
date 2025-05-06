@@ -23,7 +23,7 @@ jobs:
         run: yarn install
 
       - name: Deploy to Server
-        uses: webfactory/ssh-agent@v0.8.1
+        uses: webfactory/ssh-agent@v0.5.4
         with:
             ssh-private-key: ${{secrets.LAURENCE_SSH}}
 
