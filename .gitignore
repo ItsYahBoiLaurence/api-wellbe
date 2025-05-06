@@ -38,3 +38,5 @@ coverage/
 
 # Miscellaneous
 *.tsbuildinfo
+
+.githubbbs/*
