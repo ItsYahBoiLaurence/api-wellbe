@@ -30,7 +30,6 @@ export class TipService {
         return tipsBank
     }
 
-
     async latestTip(user_details: JwtPayload) {
 
         const user = await this.helper.getUserByEmail(user_details.sub)
@@ -58,14 +57,16 @@ export class TipService {
 
         const holistic_tip = await this.prisma.userAdvice.findUnique({
             where: {
-                user: user.email,
-                bactch_created: latest_batch.id
+                user_batch_created: {
+                    user: user.email,
+                    batch_created: latest_batch.id
+                }
             }
         })
 
         if (!holistic_tip) throw new NotFoundException("Tip not found!")
 
-        return holistic_tip.advice
+        return holistic_tip
     }
 
     async generateHolisticTip(user_details: JwtPayload) {
@@ -110,12 +111,36 @@ export class TipService {
                 user: user.email,
                 advice: ai_tip,
                 created_at: this.helper.getCurrentDate(),
-                bactch_created: latest_batch.id
+                batch_created: latest_batch.id
             }
         })
 
         if (!holistic_tip) throw new ConflictException("Error saving Advice")
 
         return { message: "Successful holistic tip generation!" }
+    }
+
+    async getUserProgress(user_details: JwtPayload) {
+        const { sub, company } = user_details
+
+        const user = await this.helper.getUserByEmail(sub)
+        const company_details = await this.helper.getCompany(company)
+
+        const latest_batch = await this.helper.getLatestBatch(company_details.name)
+
+        const batch_data = await this.prisma.employee_Under_Batch.findFirst({
+            where: {
+                email: user.email,
+                batch_id: latest_batch.id
+            },
+            select: {
+                is_completed: true,
+                set_participation: true
+            }
+        })
+
+        if (!batch_data) throw new NotFoundException('Batch data not Found!')
+
+        return batch_data
     }
 }

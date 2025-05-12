@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Logger, Post, Query, } from '@nestjs/common';
+import { Body, Controller, Get, Logger, NotFoundException, Post, Query, } from '@nestjs/common';
 import { MayanAdminService } from './mayan-admin.service';
 import { CronService } from '../cron/cron.service';
 import { EmailerService } from '../emailer/emailer.service';
@@ -7,6 +7,7 @@ import { JwtPayload } from 'src/types/jwt-payload';
 import { HelperService } from '../helper/helper.service';
 import { AnswerModel } from 'src/types/answer';
 import { OpenaiService } from '../openai/openai.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 
 @Controller('mayan-admin')
@@ -16,7 +17,8 @@ export class MayanAdminController {
         private readonly cron: CronService,
         private readonly emailer: EmailerService,
         private readonly helper: HelperService,
-        private readonly ai: OpenaiService
+        private readonly ai: OpenaiService,
+        private readonly prisma: PrismaService
     ) { }
 
     // @Get()
@@ -43,7 +45,19 @@ export class MayanAdminController {
     }
 
     @Get()
-    generateAiResponse() {
-        return this.helper.getBatchTips(86, 'laurence@mayan.com.ph')
+    async generateAiResponse(@CurrentUser() user_details: JwtPayload, @Query('company') company: string) {
+        return this.helper.getCompany(company)
+    }
+
+    @Get('test')
+    async testing(@CurrentUser() user: JwtPayload){
+        const {sub} = user
+        const user_data = await this.prisma.employee.findUnique({
+            where:{
+                email: sub
+            }
+        })
+        
+        return user_data
     }
 }

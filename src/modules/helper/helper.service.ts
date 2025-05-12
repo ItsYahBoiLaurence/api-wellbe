@@ -4,6 +4,7 @@ import { UserQuery } from 'src/types/user';
 import * as bcrypt from 'bcrypt'
 import { JwtPayload } from 'src/types/jwt-payload';
 import { AnswerModel } from 'src/types/answer';
+import { Exception } from 'handlebars';
 
 @Injectable()
 export class HelperService {
@@ -348,10 +349,51 @@ export class HelperService {
         if (!tips) throw new NotFoundException("Tips not Found!")
 
         for (const obj of tips) {
-            const [key, value] = Object.entries(tips)[0]
-            tips_bank.push(value.tip)
+            const [key, value] = Object.entries(obj)[0]
+            tips_bank.push(value)
         }
 
         return tips_bank.join(" ")
     }
+
+    async getNotFinished() {
+        const companies = await this.prisma.batch_Record.findMany({
+            where: {
+                is_completed: false
+            },
+            select: {
+                company_name: true,
+                employees_under_batch: {
+                    select: {
+                        email: true
+                    }
+                },
+                frequency: true
+            }
+        })
+
+        if (!companies) throw new Exception("No Companies")
+
+        Logger.log(companies)
+
+        const company_data = companies.map(({ company_name, employees_under_batch, frequency }) => ({
+            company: company_name,
+            frequency,
+            emails: employees_under_batch.map(emp => emp.email),
+        }))
+
+        return company_data
+    }
+
+    getPeriod(period?: string) {
+        if (!period) return undefined
+        const data_period = period == "quarter" ? 3 : period == "semiannual" ? 6 : period == "annual" ? 12 : 0
+        const date = new Date()
+        const XMonthsAgo = new Date(date)
+        XMonthsAgo.setMonth(XMonthsAgo.getMonth() - data_period)
+        return XMonthsAgo
+    }
 }
+
+
+

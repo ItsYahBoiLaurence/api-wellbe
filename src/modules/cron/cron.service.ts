@@ -1,13 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
 import { JwtPayload } from 'src/types/jwt-payload';
 import { CronJob } from 'cron'
 import { PrismaService } from '../prisma/prisma.service';
 import { HelperService } from '../helper/helper.service';
 import { EmailerService } from '../emailer/emailer.service';
+import { Exception } from 'handlebars';
 
 @Injectable()
-export class CronService {
+export class CronService implements OnModuleInit {
 
     constructor(
         private readonly scheduleRegistry: SchedulerRegistry,
@@ -15,6 +16,37 @@ export class CronService {
         private readonly helper: HelperService,
         private readonly emailer: EmailerService
     ) { }
+
+    onModuleInit() {
+        // this.getNotFinishedCompany()
+    }
+
+    private async getNotFinishedCompany() {
+
+        const companies = await this.prisma.batch_Record.findMany({
+            where: {
+                is_completed: false
+            },
+            select: {
+                company_name: true,
+                employees_under_batch: {
+                    select: {
+                        email: true
+                    }
+                },
+                frequency: true
+            }
+        })
+
+        if (!companies) throw new Exception("No Companies")
+
+        companies.map(({ company_name, employees_under_batch, frequency }) => {
+            const cron_string = frequency === "DAILY" ? "*/10 * * * * *" : "*/5 * * * * *"
+            const emails = employees_under_batch.map(emp => emp.email)
+            this.addCronJob(company_name, emails, cron_string)
+        })
+
+    }
 
     private stringTransformer(text: string) {
         return text.toLowerCase().replace(' ', '-')
@@ -71,7 +103,7 @@ export class CronService {
         //     where: { id: batch?.id },
         //     data: { current_set_number: batch?.current_set_number + 1 }
         // })
-        Logger.log('asd')
+        Logger.log(`${company_name}`)
     }
 
     addCronJob(company: string, emails: string[], cronString: string) {

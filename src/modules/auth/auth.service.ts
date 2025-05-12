@@ -35,7 +35,6 @@ export class AuthService {
         return { access_token: await this.jwtService.signAsync(payload) }
     }
 
-
     async registerUser(payload: UserModel) {
         if (!payload) throw new BadRequestException("Invalid Payload")
 

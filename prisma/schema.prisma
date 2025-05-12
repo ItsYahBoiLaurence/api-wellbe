@@ -24,12 +24,13 @@ model Company {
 }
 
 model Department {
-  id         Int        @id @default(autoincrement())
+  id         Int         @id @default(autoincrement())
   name       String
-  created_at DateTime   @default(now())
+  created_at DateTime    @default(now())
   company_id String
-  company    Company    @relation(fields: [company_id], references: [name], onDelete: Cascade)
+  company    Company     @relation(fields: [company_id], references: [name], onDelete: Cascade)
   employees  Employee[]
+  Wellbeing  Wellbeing[]
 
   @@unique([name, company_id])
 }
@@ -58,11 +59,14 @@ model Tips {
 }
 
 model UserAdvice {
-  user           String   @id
-  user_email     Employee @relation(fields: [user], references: [email])
-  advice         String
-  created_at     DateTime
-  bactch_created Int
+  id            Int      @id @default(autoincrement())
+  user          String
+  user_email    Employee @relation(fields: [user], references: [email])
+  advice        String
+  created_at    DateTime
+  batch_created Int
+
+  @@unique([user, batch_created])
 }
 
 model Question {
@@ -137,4 +141,8 @@ model Wellbeing {
   wellbeing_score Json
   batch_id        Int
   batch           Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+  department      Int
+  department_id   Department   @relation(fields: [department], references: [id], onDelete: Cascade)
+
+  @@unique([user_email, batch_id])
 }

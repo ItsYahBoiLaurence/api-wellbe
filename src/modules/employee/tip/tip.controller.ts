@@ -26,4 +26,9 @@ export class TipController {
     generateHolisticTip(@CurrentUser() user: JwtPayload) {
         return this.service.generateHolisticTip(user)
     }
+
+    @Get('progress')
+    getUserProgress(@CurrentUser() user: JwtPayload) {
+        return this.service.getUserProgress(user)
+    }
 }

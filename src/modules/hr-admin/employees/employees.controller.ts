@@ -9,7 +9,7 @@ export class EmployeesController {
     constructor(private readonly employeesService: EmployeesService) { }
 
     @Get()
-    getEmployees(@CurrentUser() user_data: JwtPayload) {
-        return this.employeesService.getAllEmployees(user_data)
+    getEmployees(@CurrentUser() user_data: JwtPayload, @Query('department') department: string) {
+        return this.employeesService.getAllEmployees(user_data, department)
     }
 }

@@ -1,32 +1,43 @@
 import { Injectable } from '@nestjs/common';
+import { HelperService } from 'src/modules/helper/helper.service';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { JwtPayload } from 'src/types/jwt-payload';
 
 @Injectable()
 export class EmployeesService {
 
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(private readonly prisma: PrismaService, private readonly helper: HelperService) { }
 
-    getAllEmployees(user_data: JwtPayload) {
+    async getAllEmployees(user_data: JwtPayload, department: string) {
 
         const { company } = user_data
-        const departments = this.prisma.department.findMany({
+        const user_company = await this.helper.getCompany(company)
+
+        const user_department = department ?? undefined
+
+        const employees = this.prisma.employee.findMany({
             where: {
-                company_id: company
+                department: {
+                    name: user_department,
+                    company: {
+                        name: user_company.name
+                    }
+                }
             },
-            include: {
-                employees: {
-                    omit: {
-                        password: true,
-                        department_id: true,
-                        role: true
+            select: {
+                first_name: true,
+                last_name: true,
+                email: true,
+                department: {
+                    select: {
+                        name: true
                     }
                 }
             }
         })
 
-        if (!departments) return { message: "Company does not exist!" }
+        if (!employees) return { message: "Company does not exist!" }
 
-        return departments
+        return employees
     }
 }
