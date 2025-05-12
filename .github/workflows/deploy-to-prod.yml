@@ -37,8 +37,8 @@ jobs:
                 cd api-wellbe
                 git pull origin main
                 yarn install 
-                yarn build
                 npx prisma generate
+                yarn build
                 pm2 reload all
             EOF
             
