@@ -38,6 +38,7 @@ jobs:
                 git pull origin main
                 yarn install 
                 yarn build
+                npx prisma generate
                 pm2 reload all
             EOF
             

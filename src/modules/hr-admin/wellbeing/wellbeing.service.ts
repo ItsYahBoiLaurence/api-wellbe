@@ -185,8 +185,6 @@ export class WellbeingService {
 
         const month = this.helper.getPeriod(period)
 
-        Logger.log(month)
-
         const deptWellbeing = await this.prisma.department.findMany({
             where: {
                 company_id: company.name
