@@ -56,4 +56,9 @@ export class EmployeesService {
             throw new e
         }
     }
+
+
+    async sendBulkInvite() {
+
+    }
 }

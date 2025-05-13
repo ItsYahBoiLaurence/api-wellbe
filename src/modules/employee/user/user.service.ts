@@ -14,7 +14,7 @@ export class UserService {
     async createEmployee(payload: UserModel) {
         if (!payload) throw new BadRequestException("Invalid Payload")
 
-        const { email, firstname, lastname, password, company, department_name } = payload
+        const { email, first_name, last_name, password, company, department_name } = payload
 
         const hashed_pass = await this.helper.hashPass(password)
 
@@ -26,8 +26,8 @@ export class UserService {
             const newUser = await this.prisma.employee.create({
                 data: {
                     email,
-                    first_name: firstname,
-                    last_name: lastname,
+                    first_name,
+                    last_name,
                     department_id,
                     password: hashed_pass
                 },
@@ -39,7 +39,6 @@ export class UserService {
                 first_name: newUser.first_name,
                 last_name: newUser.last_name
             }
-
             return resPayload
         } catch (error) {
             if (error.code === 'P2002') throw new ConflictException("User already exist!")

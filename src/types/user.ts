@@ -1,7 +1,7 @@
 export interface UserModel {
     email: string
-    firstname: string
-    lastname: string
+    first_name: string
+    last_name: string
     department_name: string
     company: string
     password: string

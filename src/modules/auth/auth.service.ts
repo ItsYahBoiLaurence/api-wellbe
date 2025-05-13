@@ -40,13 +40,13 @@ export class AuthService {
 
         const {
             email,
-            firstname,
-            lastname,
+            first_name,
+            last_name,
             department_name,
             company,
             password } = payload
 
-        if (!email || !firstname || !lastname || !department_name || !company || !password) throw new BadRequestException("Invalid Payload")
+        if (!email || !first_name || !last_name || !department_name || !company || !password) throw new BadRequestException("Invalid Payload")
 
         const department_id = await this.helper.getDepartmentId(company, department_name)
 
@@ -55,8 +55,8 @@ export class AuthService {
         const user = await this.prisma.employee.create({
             data: {
                 email,
-                first_name: firstname,
-                last_name: lastname,
+                first_name: first_name,
+                last_name: last_name,
                 department_id,
                 password: hashed_pass
             }

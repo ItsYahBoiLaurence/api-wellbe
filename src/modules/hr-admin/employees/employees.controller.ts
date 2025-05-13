@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { EmployeesService } from './employees.service';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { JwtPayload } from 'src/types/jwt-payload';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('hr-admin/employees')
 export class EmployeesController {
@@ -16,6 +17,12 @@ export class EmployeesController {
     @Post()
     inviteEmployees(@CurrentUser() user_data: JwtPayload, @Body() payload: { first_name: string, last_name: string, email: string, department: string }) {
         return this.employeesService.sendInvite(user_data, payload)
+    }
+
+    @Post('upload-csv')
+    @UseInterceptors(FileInterceptor('file'))
+    batchUpload() {
+        return this.employeesService.sendBulkInvite()
     }
 
 }
