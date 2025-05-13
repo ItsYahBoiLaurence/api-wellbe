@@ -15,6 +15,7 @@ import { AuthGuard } from './modules/auth/auth.guard';
 import { CronModule } from './modules/cron/cron.module';
 import { EmailerModule } from './modules/emailer/emailer.module';
 import { OpenaiModule } from './modules/openai/openai.module';
+import { CsvParcerModule } from './modules/csv-parcer/csv-parcer.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { OpenaiModule } from './modules/openai/openai.module';
     CronModule,
     EmailerModule,
     OpenaiModule,
+    CsvParcerModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService, { provide: APP_GUARD, useClass: AuthGuard }],
