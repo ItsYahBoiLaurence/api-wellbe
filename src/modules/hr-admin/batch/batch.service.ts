@@ -120,6 +120,7 @@ export class BatchService {
                 created_at: 'desc'
             }
         })
+        if (!latest_batch) return { is_completed: true }
         return latest_batch
     }
 }
