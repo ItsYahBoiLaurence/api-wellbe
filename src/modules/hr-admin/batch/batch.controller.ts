@@ -17,4 +17,9 @@ export class BatchController {
         return this.batchService.startBatch(user_data)
     }
 
+    @Get('latest')
+    getBatch(@CurrentUser() user_data: JwtPayload) {
+        return this.batchService.getBatch(user_data)
+    }
+
 }

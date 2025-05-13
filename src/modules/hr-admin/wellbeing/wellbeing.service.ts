@@ -257,7 +257,8 @@ export class WellbeingService {
                 company_name: company.name,
                 created_at: {
                     gte: month
-                }
+                },
+                is_completed: true
             },
             orderBy: {
                 created_at: 'desc'

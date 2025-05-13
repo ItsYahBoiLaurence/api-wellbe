@@ -108,4 +108,18 @@ export class BatchService {
 
         return { message: "Batch started successfully!" }
     }
+
+    async getBatch(user_data: JwtPayload) {
+        const { company } = user_data
+        const user_company = await this.helper.getCompany(company)
+        const latest_batch = await this.prisma.batch_Record.findFirst({
+            where: {
+                company_name: user_company.name
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        })
+        return latest_batch
+    }
 }

@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { HelperService } from './helper.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, ConfigModule],
   providers: [HelperService],
   exports: [HelperService]
 })

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Query } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserModel, UserQuery } from 'src/types/user';
 import { HelperService } from 'src/modules/helper/helper.service';
@@ -22,5 +22,10 @@ export class UserController {
     @Post()
     registerUser(@Body() payload: UserModel) {
         return this.service.createEmployee(payload)
+    }
+
+    @Patch()
+    updateInformation(@CurrentUser() user: JwtPayload, @Body() payload: { first_name: string, last_name: string, email: string, department: string }) {
+        return this.service.updateEmployee(user, payload)
     }
 }

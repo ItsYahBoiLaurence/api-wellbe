@@ -1,7 +1,5 @@
 import { MailerService } from '@nestjs-modules/mailer';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { NotFoundError } from 'rxjs';
-import { EmailPayload, MailerPayload, ReminderEmail } from 'src/types/email';
 
 @Injectable()
 export class EmailerService {
@@ -318,4 +316,16 @@ export class EmailerService {
   }
   //deadline reminder email
   async deadlineEmail() { }
+
+  async inviteEmployee(user: string, email: string, company: string, link: string) {
+    try {
+      await this.mailerService.sendMail({
+        to: email,
+        subject: "You're Invited",
+        html: this.inviteTemplate({ user, company, link })
+      })
+    } catch (e) {
+      Logger.log(e)
+    }
+  }
 }
