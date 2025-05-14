@@ -53,7 +53,7 @@ export class EmployeesService {
 
         try {
             // const hash = encryptData(finalPayload)
-            const link = `http://localhost:3400/sign-up?email=${payload.email}&firstname=${payload.first_name}&lastname=${payload.last_name}&department=${payload.department}&company=${user_comp.name}`
+            const link = `https://employee-wellbe.vercel.app/sign-up?email=${payload.email}&firstname=${payload.first_name}&lastname=${payload.last_name}&department=${payload.department}&company=${user_comp.name}`
             this.mail.inviteEmployee(payload.first_name, payload.email, user_comp.name, link)
             return { message: "Invite Sent" }
         } catch (e) {
@@ -84,7 +84,7 @@ export class EmployeesService {
             }
 
             try {
-                const link = `http://localhost:3400/sign-up?email=${item.email}&firstname=${item.first_name}&lastname=${item.last_name}&department=${item.department}&company=${company}`
+                const link = `https://employee-wellbe.vercel.app/sign-up?email=${item.email}&firstname=${item.first_name}&lastname=${item.last_name}&department=${item.department}&company=${company}`
                 this.mail.inviteEmployee(item.first_name, item.email, company, link)
                 successInvites.push({ item });
             } catch (err) {
