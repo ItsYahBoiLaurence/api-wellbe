@@ -41,7 +41,7 @@ export class CronService implements OnModuleInit {
         if (!companies) throw new Exception("No Companies")
 
         companies.map(({ company_name, employees_under_batch, frequency }) => {
-            const cron_string = frequency === "DAILY" ? "* * * * *" : "*/5 * * * * *"
+            const cron_string = frequency === "DAILY" ? CronExpression.EVERY_MINUTE : CronExpression.EVERY_5_MINUTES
             const emails = employees_under_batch.map(emp => emp.email)
             this.addCronJob(company_name, emails, cron_string)
         })
@@ -70,14 +70,6 @@ export class CronService implements OnModuleInit {
             Logger.log("The Batch ended!")
             return
         }
-
-        Logger.log("===========")
-        Logger.log(`Questions were sent for the Batch ${batch.current_set_number + 1}`)
-        Logger.log("===========")
-
-        Logger.log("===========")
-        Logger.log(emails)
-        Logger.log("===========")
 
         const left = `${(5 - (batch.current_set_number + 1)) == 0 ? "no" : (5 - (batch.current_set_number + 1))}`
         emails.map(async (email) => {

@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { CronExpression } from '@nestjs/schedule';
 import { CronService } from 'src/modules/cron/cron.service';
 import { EmailerService } from 'src/modules/emailer/emailer.service';
 import { HelperService } from 'src/modules/helper/helper.service';
@@ -72,7 +73,7 @@ export class BatchService {
         if (!newBatch) throw new ConflictException('Batch generation failed!')
 
         //change the cronstring to 10 everyday and 10 every monday of the week
-        const batch_frequency = newBatch.frequency === "DAILY" ? "*/10 * * * * *" : "*/5 * * * * *"
+        const batch_frequency = newBatch.frequency === "DAILY" ? CronExpression.EVERY_MINUTE : CronExpression.EVERY_30_SECONDS
 
         employeeEmails.map(async (email) => {
             const questions = await this.helper.generateBatchQuestions()
