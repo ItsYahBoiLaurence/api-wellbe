@@ -73,6 +73,7 @@ export class WellbeingService {
 
         const { sub } = user_details
 
+        //should also filter by batch_id
         const user = await this.helper.getUserByEmail(sub)
 
         const score = await this.prisma.wellbeing.findFirst({
