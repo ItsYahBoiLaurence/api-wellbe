@@ -68,7 +68,7 @@ export class EmailerService {
                             <li><strong>Enhanced Relationships:</strong> Manage emotions for healthier personal and professional connections.</li>
                             <li><strong>Increased Productivity:</strong> Stay focused and motivated, improving work performance.</li>
                         </ul>
-                        <p>Tap this <a href="http://localhost:3400/" style="color: #040237;">link</a> to start your Wellbe journey!</p>
+                        <p>Tap this <a href="https://employee-wellbe.vercel.app/" style="color: #040237;">link</a> to start your Wellbe journey!</p>
                         <p>If you have any questions, feel free to <a href="mailto:support@example.com" style="color: #040237;">contact us</a>.</p>
                         <p>Best regards,</p>
                         <p>The ${company} Team</p>
@@ -136,7 +136,7 @@ export class EmailerService {
           </p>
           <p>Don’t wait—your well-being is important, and completing your forms is a key step in understanding how to better care for yourself. Answer your current form now, and continue your journey towards a healthier, more balanced state of mind.</p>
           <p>We’re here to support you every step of the way!</p>
-          <p>Tap this <a href="https://localhost:3400/" style="color: #040237;">link</a> to return to your Wellbe app and continue your journey to workplace wellbeing!</p>
+          <p>Tap this <a href="https://employee-wellbe.vercel.app/" style="color: #040237;">link</a> to return to your Wellbe app and continue your journey to workplace wellbeing!</p>
           <p>If you have any questions, feel free to <a href="mailto:support@example.com" style="color: #040237;">contact us</a>.</p>
           <p>Best regards,</p>
           <p>The ${company} Team</p>
@@ -204,7 +204,7 @@ export class EmailerService {
           </p>
           <p>Don't miss out! Completing your forms will allow us to provide you with tailored advice and resources to support your well-being. Remember, the deadline is just around the corner, so take action now.</p>
           <p>We’re here to support you every step of the way!</p>
-          <p>Tap this <a href="http://localhost:3400/" style="color: #040237;">link</a> to return to your Wellbe app and continue your journey to workplace wellbeing!</p>
+          <p>Tap this <a href="https://employee-wellbe.vercel.app/" style="color: #040237;">link</a> to return to your Wellbe app and continue your journey to workplace wellbeing!</p>
           <p>If you have any questions, feel free to <a href="mailto:support@example.com" style="color: #040237;">contact us</a>.</p>
           <p>Best regards,</p>
           <p>The ${company} Team</p>

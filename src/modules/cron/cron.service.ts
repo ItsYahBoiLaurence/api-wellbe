@@ -41,7 +41,7 @@ export class CronService implements OnModuleInit {
         if (!companies) throw new Exception("No Companies")
 
         companies.map(({ company_name, employees_under_batch, frequency }) => {
-            const cron_string = frequency === "DAILY" ? CronExpression.EVERY_MINUTE : CronExpression.EVERY_5_MINUTES
+            const cron_string = frequency === "DAILY" ? CronExpression.EVERY_DAY_AT_2AM : "0 2 * * 1"
             const emails = employees_under_batch.map(emp => emp.email)
             this.addCronJob(company_name, emails, cron_string)
         })
