@@ -21,6 +21,7 @@ model Company {
   departments  Department[]
   batch_record Batch_Record[]
   Settings     Settings[]
+  ScatterData  ScatterData[]
 }
 
 model Department {
@@ -145,4 +146,12 @@ model Wellbeing {
   department_id   Department   @relation(fields: [department], references: [id], onDelete: Cascade)
 
   @@unique([user_email, batch_id])
+}
+
+model ScatterData {
+  id           Int      @id @default(autoincrement())
+  company_name String
+  company      Company  @relation(fields: [company_name], references: [name], onDelete: Cascade)
+  scatterData  Json
+  created_at   DateTime
 }

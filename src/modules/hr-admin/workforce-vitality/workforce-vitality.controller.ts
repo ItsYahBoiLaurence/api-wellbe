@@ -8,6 +8,11 @@ import { FileInterceptor } from '@nestjs/platform-express';
 export class WorkforceVitalityController {
     constructor(private readonly service: WorkforceVitalityService) { }
 
+    @Get()
+    getScatterPlot(@CurrentUser() user: JwtPayload) {
+        return this.service.getScatter(user)
+    }
+
     @Post()
     @UseInterceptors(FileInterceptor('file'))
     generateScatterplot(@CurrentUser() user: JwtPayload, @UploadedFile() file: Express.Multer.File) {

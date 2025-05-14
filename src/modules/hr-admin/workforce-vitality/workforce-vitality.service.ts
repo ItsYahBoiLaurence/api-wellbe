@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictError } from 'openai';
 
 import { CsvParcerService } from 'src/modules/csv-parcer/csv-parcer.service';
 import { HelperService } from 'src/modules/helper/helper.service';
@@ -60,9 +61,39 @@ export class WorkforceVitalityService {
                 });
             }
         }
+
+        const createData = await this.prisma.scatterData.create({
+            data: {
+                created_at: this.helper.getCurrentDate(),
+                scatterData: { users_with_data },
+                company_name: userCompany.name
+            }
+        })
+
+        if (!createData) throw new ConflictException("Scatter Plot data not generated!")
+
         return {
             users_with_data,
             users_without_data,
         };
+    }
+
+    async getScatter(user_data: JwtPayload) {
+        const { company } = user_data
+        const user_company = await this.helper.getCompany(company)
+        const scatter = await this.prisma.scatterData.findFirst({
+            where: {
+                company_name: user_company.name
+            },
+            orderBy: {
+                created_at: 'desc'
+            },
+            select: {
+                scatterData: true,
+                created_at: true
+            }
+        })
+        if (!scatter) throw new NotFoundException("Performance vs. Wellbeing Data not found!")
+        return scatter
     }
 }
