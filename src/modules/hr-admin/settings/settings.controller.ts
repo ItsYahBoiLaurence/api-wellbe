@@ -15,7 +15,7 @@ export class SettingsController {
     }
 
     @Patch()
-    settingConfig(@CurrentUser() user_data: JwtPayload, @Body('frequency') frequency: SettingsPayload) {
+    settingConfig(@CurrentUser() user_data: JwtPayload, @Body() frequency: SettingsPayload) {
         return this.settingService.updateSettings(user_data, frequency)
     }
 }
