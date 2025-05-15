@@ -18,7 +18,7 @@ export class CronService implements OnModuleInit {
     ) { }
 
     onModuleInit() {
-        // this.getNotFinishedCompany()
+        this.getNotFinishedCompany()
     }
 
     private async getNotFinishedCompany() {
