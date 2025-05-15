@@ -73,7 +73,7 @@ export class BatchService {
         if (!newBatch) throw new ConflictException('Batch generation failed!')
 
         //change the cronstring to 10 everyday and 10 every monday of the week
-        const batch_frequency = newBatch.frequency === "DAILY" ? CronExpression.EVERY_MINUTE : CronExpression.EVERY_30_SECONDS
+        const batch_frequency = newBatch.frequency === "DAILY" ? CronExpression.EVERY_DAY_AT_2AM : "0 2 * * 1"
 
         employeeEmails.map(async (email) => {
             const questions = await this.helper.generateBatchQuestions()

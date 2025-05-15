@@ -27,10 +27,9 @@ export class ParticipationRateService {
 
             const latest_batch = await this.helper.getLatestBatch(company);
 
-
             const commonFilters: any = { batch_id: latest_batch.id };
-            let departmentName = 'Overall';
 
+            let departmentName = 'Overall';
 
             if (department) {
                 const dept = await this.helper.getDepartment(company, department);
