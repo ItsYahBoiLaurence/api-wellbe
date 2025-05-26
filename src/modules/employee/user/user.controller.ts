@@ -28,4 +28,16 @@ export class UserController {
     updateInformation(@CurrentUser() user: JwtPayload, @Body() payload: { first_name: string, last_name: string, email: string, department: string }) {
         return this.service.updateEmployee(user, payload)
     }
+
+    // @Public()
+    // @Get('password-reset')
+    // passwordReset(@Query('email') email: string) {
+    //     return this.helper.hashPass(email)
+    // }
+
+    // @Public()
+    // @Get('password-confirm')
+    // passwordConfirm(@Query('pass') pass: string) {
+    //     return this.helper.comparePass(pass, "$2b$10$XKx1l/.kGXr5DyvWMOjIo.7Kobse.OYmXCizBOV1DAvFiFfNyj5mm")
+    // }
 }

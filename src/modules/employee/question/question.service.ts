@@ -15,6 +15,15 @@ export class QuestionService {
         private readonly ai: OpenaiService
     ) { }
 
+    private async getMissedQuestion(arr: [], batch_num: number) {
+        for (let i = 0; i < batch_num - 1; i++) {
+            if (arr[i] === false) {
+                return i
+            }
+        }
+        return null
+    }
+
     async generateQuestion(user_jwt: JwtPayload) {
 
         const { company, sub } = user_jwt
@@ -35,6 +44,25 @@ export class QuestionService {
         })
 
         if (!user) throw new NotFoundException("User not found!")
+
+        const missed = await this.getMissedQuestion(user.set_participation as [], batch.current_set_number)
+
+        if (missed !== null) {
+            const missed_question_indeces = user.question_bank?.[missed]
+            const questions = await this.prisma.question.findMany({
+                where: {
+                    id: {
+                        in: missed_question_indeces
+                    }
+                },
+                select: {
+                    id: true,
+                    question: true
+                }
+            })
+            if (!questions) throw new ConflictException("No Questionss Available!")
+            return questions
+        }
 
         if (user.set_participation?.[batch.current_set_number - 1] === true) throw new ConflictException('No question available!')
 

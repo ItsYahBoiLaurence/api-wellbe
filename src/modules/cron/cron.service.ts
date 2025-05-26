@@ -10,6 +10,8 @@ import { Exception } from 'handlebars';
 @Injectable()
 export class CronService implements OnModuleInit {
 
+    private readonly console = new Logger(CronService.name);
+
     constructor(
         private readonly scheduleRegistry: SchedulerRegistry,
         private readonly prisma: PrismaService,
@@ -41,11 +43,15 @@ export class CronService implements OnModuleInit {
         if (!companies) throw new Exception("No Companies")
 
         companies.map(({ company_name, employees_under_batch, frequency }) => {
-            const cron_string = frequency === "DAILY" ? CronExpression.EVERY_DAY_AT_2AM : "0 2 * * 1"
+            const cron_string = frequency === "DAILY" ? CronExpression.EVERY_DAY_AT_2AM
+                : frequency === "WEEKLY" ? "0 2 * * 1"
+                    : frequency === "EVERY_HOUR" ? CronExpression.EVERY_HOUR
+                        : frequency === "EVERY_MINUTE" ? CronExpression.EVERY_MINUTE
+                            : CronExpression.EVERY_DAY_AT_2AM
+
             const emails = employees_under_batch.map(emp => emp.email)
             this.addCronJob(company_name, emails, cron_string)
         })
-
     }
 
     private stringTransformer(text: string) {
@@ -67,7 +73,7 @@ export class CronService implements OnModuleInit {
                 }
             })
             this.scheduleRegistry.deleteCronJob(`${this.stringTransformer(company_name)}-company-job`)
-            Logger.log("The Batch ended!")
+            this.console.log("The Batch ended!")
             return
         }
 
@@ -95,7 +101,7 @@ export class CronService implements OnModuleInit {
             where: { id: batch?.id },
             data: { current_set_number: batch?.current_set_number + 1 }
         })
-        // Logger.log(`${company_name}`)
+        // Logger.log(`${company_name}`, "STARTED CRON")
     }
 
     addCronJob(company: string, emails: string[], cronString: string) {

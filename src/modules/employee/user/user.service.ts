@@ -6,6 +6,7 @@ import { UserModel } from 'src/types/user';
 
 @Injectable()
 export class UserService {
+    private console = new Logger(UserService.name)
     constructor(
         private readonly prisma: PrismaService,
         private readonly helper: HelperService
@@ -50,11 +51,9 @@ export class UserService {
 
         const { company } = user_details
 
-        Logger.log(payload)
+        this.console.log(payload)
 
         const department = await this.helper.getDepartment(company, payload.department)
-
-        console.log(department)
 
         const newInfo = await this.prisma.employee.update({
             where: {

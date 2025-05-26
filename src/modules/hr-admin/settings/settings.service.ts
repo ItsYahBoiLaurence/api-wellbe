@@ -28,7 +28,6 @@ export class SettingsService {
         const { company, role } = user_details
         if (!data_payload) throw new BadRequestException("Invalid Payload")
         if (role === "employee") throw new ForbiddenException("You don't have permission to edit this!")
-        Logger.log(data_payload.frequency)
         try {
             const settings = await this.prisma.settings.update({
                 where: {
@@ -40,7 +39,6 @@ export class SettingsService {
             })
             if (!settings) throw new ConflictException("Settings configuration failed!")
 
-            Logger.log(settings)
             return { message: "Settings updated successfully" }
 
         } catch (error) {

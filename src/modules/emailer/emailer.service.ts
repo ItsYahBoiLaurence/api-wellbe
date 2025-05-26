@@ -4,6 +4,8 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 @Injectable()
 export class EmailerService {
 
+  private console = new Logger(EmailerService.name)
+
   constructor(private readonly mailerService: MailerService,
   ) { }
 
@@ -301,7 +303,7 @@ export class EmailerService {
         html: this.welcomeTemplate({ company, user })
       })
     } catch (error) {
-      Logger.log(error)
+      this.console.log(error)
     }
   }
   //batch reminder email
@@ -325,7 +327,7 @@ export class EmailerService {
         html: this.inviteTemplate({ user, company, link })
       })
     } catch (e) {
-      Logger.log(e)
+      this.console.log(e)
     }
   }
 }

@@ -8,6 +8,8 @@ import { JwtPayload } from 'src/types/jwt-payload';
 
 @Injectable()
 export class BatchService {
+    private console = new Logger(BatchService.name)
+
     constructor(
         private readonly prisma: PrismaService,
         private readonly helper: HelperService,
@@ -26,8 +28,6 @@ export class BatchService {
         const company_name = await this.helper.getCompany(company)
 
         const company_config = await this.helper.getCompanyConfig(company_name.name)
-
-        Logger.log(company_config.frequency)
 
         const employees = await this.prisma.company.findUnique({
             where: {
@@ -73,7 +73,12 @@ export class BatchService {
         if (!newBatch) throw new ConflictException('Batch generation failed!')
 
         //change the cronstring to 10 everyday and 10 every monday of the week
-        const batch_frequency = newBatch.frequency === "DAILY" ? CronExpression.EVERY_DAY_AT_2AM : "0 2 * * 1"
+        const batch_frequency = newBatch.frequency === "DAILY" ? CronExpression.EVERY_DAY_AT_2AM
+            : newBatch.frequency === "WEEKLY" ? "0 2 * * 1"
+                : newBatch.frequency === "EVERY_HOUR" ? CronExpression.EVERY_HOUR
+                    : newBatch.frequency === "EVERY_MINUTE" ? CronExpression.EVERY_MINUTE
+                        : CronExpression.EVERY_DAY_AT_2AM
+
 
         employeeEmails.map(async (email) => {
             const questions = await this.helper.generateBatchQuestions()
@@ -101,7 +106,7 @@ export class BatchService {
             try {
                 this.emailer.welcomeEmail(email_payload)
             } catch (error) {
-                Logger.log(error)
+                this.console.log(error)
             }
         })
 

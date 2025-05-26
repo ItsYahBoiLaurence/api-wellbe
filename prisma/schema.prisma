@@ -117,6 +117,8 @@ model Answer {
 enum Frequency {
   DAILY
   WEEKLY
+  EVERY_HOUR
+  EVERY_MINUTE
 }
 
 model Settings {

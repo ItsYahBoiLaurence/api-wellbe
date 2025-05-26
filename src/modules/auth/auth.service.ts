@@ -19,7 +19,7 @@ export class AuthService {
 
         const { email, password } = credential
 
-        const user = await this.userService.findUser(email)
+        const user = await this.userService.findUser(email.toLowerCase())
 
         if (!user) throw new UnauthorizedException("Invalid Credentials!")
 
@@ -54,7 +54,7 @@ export class AuthService {
 
         const user = await this.prisma.employee.create({
             data: {
-                email,
+                email: email.toLowerCase(),
                 first_name: first_name,
                 last_name: last_name,
                 department_id,

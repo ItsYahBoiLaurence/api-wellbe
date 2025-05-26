@@ -134,8 +134,6 @@ export class WellbeingService {
 
         const month = this.helper.getPeriod(period)
 
-        Logger.log(month, "asds")
-
         const filter = {
             user: {
                 department: {
@@ -177,7 +175,6 @@ export class WellbeingService {
             },
             { career: 0, character: 0, contentment: 0, connectedness: 0 }
         )
-        Logger.log(raw_wellbeing, "asddd")
         return this.getAverage(totals, employee_count)
     }
 

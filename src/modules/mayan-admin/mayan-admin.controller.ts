@@ -21,23 +21,6 @@ export class MayanAdminController {
         private readonly prisma: PrismaService
     ) { }
 
-    // @Get()
-    // async getProfile(@CurrentUser() user: JwtPayload) {
-    //     return this.helper.getUserIdByEmail(user)
-    // }
-
-    // @Post()
-    // sayHello(@Body() payload: CompanyModel) {
-    //     Logger.log(payload)
-    //     return this.service.createCompany(payload)
-    // }
-
-    // @Get()
-    // startCronJob(@Query('company') company: string) {
-    //     Logger.log(company)
-    //     return this.emailer.welcomeEmail()
-    // }
-
     @Post()
     getSettings(@CurrentUser() user: JwtPayload, @Body() data: AnswerModel[]) {
         const { company, sub } = user
@@ -50,14 +33,14 @@ export class MayanAdminController {
     }
 
     @Get('test')
-    async testing(@CurrentUser() user: JwtPayload){
-        const {sub} = user
+    async testing(@CurrentUser() user: JwtPayload) {
+        const { sub } = user
         const user_data = await this.prisma.employee.findUnique({
-            where:{
+            where: {
                 email: sub
             }
         })
-        
+
         return user_data
     }
 }

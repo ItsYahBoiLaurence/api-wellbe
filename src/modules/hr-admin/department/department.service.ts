@@ -48,7 +48,6 @@ export class DepartmentService {
                 }
             })
 
-            Logger.log(department_data)
             return department_data
         }
 
