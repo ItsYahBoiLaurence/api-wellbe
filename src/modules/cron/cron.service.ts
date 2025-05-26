@@ -50,7 +50,9 @@ export class CronService implements OnModuleInit {
                             : CronExpression.EVERY_DAY_AT_2AM
 
             const emails = employees_under_batch.map(emp => emp.email)
+
             this.addCronJob(company_name, emails, cron_string)
+
         })
     }
 
