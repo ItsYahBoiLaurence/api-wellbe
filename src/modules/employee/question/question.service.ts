@@ -111,6 +111,57 @@ export class QuestionService {
 
         if (!user) throw new NotFoundException("User not in the Batch!")
 
+        const missed = await this.getMissedQuestion(user.set_participation as [], batch.current_set_number)
+
+        if (missed !== null) {
+            await this.prisma.answer.create({
+                data: {
+                    answer: data,
+                    employee_id: user.id
+                }
+            })
+
+            if (Array.isArray(user.set_participation)) {
+                const updatedPayload = [...user.set_participation]
+                updatedPayload[missed] = true
+
+                await this.prisma.employee_Under_Batch.update({
+                    where: {
+                        email_batch_id: {
+                            batch_id: batch.id,
+                            email: sub
+                        }
+                    },
+                    data: {
+                        set_participation: updatedPayload
+                    }
+                })
+            }
+
+            this.helper.userCompletedTheBatch(sub, batch.id)
+
+            const advices = await this.helper.getAdviceForUser(data)
+
+
+            const tip = await this.ai.generateTip(advices)
+
+            if (!tip) throw new ConflictException("Error generating Advice!")
+
+
+            const isSaved = await this.prisma.tips.create({
+                data: {
+                    user: user.email,
+                    tip,
+                    created_at: this.helper.getCurrentDate(),
+                    batch_created: batch.id
+                }
+            })
+
+            if (!isSaved) throw new ConflictException("Error saving tip!")
+
+            return { message: "Answer submitted successfully!" }
+        }
+
 
         if (user.set_participation?.[batch.current_set_number - 1] === true) throw new ConflictException('You already submitted your answer!')
 
