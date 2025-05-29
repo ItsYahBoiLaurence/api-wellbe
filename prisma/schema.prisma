@@ -53,7 +53,7 @@ model Employee {
 model Tips {
   id            Int      @id @default(autoincrement())
   user          String
-  user_email    Employee @relation(fields: [user], references: [email])
+  user_email    Employee @relation(fields: [user], references: [email], onDelete: Cascade)
   tip           String
   created_at    DateTime
   batch_created Int
@@ -62,7 +62,7 @@ model Tips {
 model UserAdvice {
   id            Int      @id @default(autoincrement())
   user          String
-  user_email    Employee @relation(fields: [user], references: [email])
+  user_email    Employee @relation(fields: [user], references: [email], onDelete: Cascade)
   advice        String
   created_at    DateTime
   batch_created Int
