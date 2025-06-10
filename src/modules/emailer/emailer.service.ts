@@ -12,7 +12,6 @@ export class EmailerService {
   constructor(
     private readonly mailerService: MailerService,
     private readonly helper: HelperService,
-    private readonly configService: ConfigService
   ) { }
 
   private welcomeTemplate = ({ user, company }: { user: string, company: string }) => {
@@ -225,6 +224,7 @@ export class EmailerService {
     </html>`
   }
 
+
   private inviteTemplate = ({ user, company, link }: { user: string, company: string, link: string }) => {
     return `<!DOCTYPE html>
     <html>
@@ -285,7 +285,7 @@ export class EmailerService {
             <li>Answer a few quick questions about your workplace wellbeing.</li>
             <li>Receive personalized insights to help improve your experience.</li>
           </ul>
-          <p><a href="${this.configService.get<string>('INVITE_LINK')}" style="color: #040237;">Start Your Wellbeing Assessment</a></p>
+          <p><a href="${link}" style="color: #040237;">Start Your Wellbeing Assessment</a></p>
           <p>Your wellbeing matters, and we’re here to support you every step of the way. If you have any questions, feel free to reach out.</p>
           <p>Looking forward to your participation!<p>
           <p>Best regards,</p>
