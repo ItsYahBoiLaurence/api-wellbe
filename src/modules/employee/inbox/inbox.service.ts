@@ -11,8 +11,7 @@ export class InboxService {
     constructor(private readonly prisma: PrismaService) { }
 
     async getInbox(email: string, cursor?: number, limit = 10) {
-
-        const query: any = {
+        const query: Parameters<typeof this.prisma.inbox.findMany>[0] = {
             where: {
                 receiver: email
             },
@@ -27,16 +26,11 @@ export class InboxService {
             query.cursor = { id: Number(cursor) }
         }
 
-        const [tips, tipCount] = await Promise.all([
-            await this.prisma.inbox.findMany(query),
-            await this.prisma.inbox.count({
-                where: query.where
-            })
-        ])
+        const tips = await this.prisma.inbox.findMany(query)
 
         return {
             data: tips,
-            nextCursor: tipCount === limit ? tips[tipCount].id : null
+            nextCursor: tips.length === limit ? tips[tips.length - 1].id : null
         }
     }
 

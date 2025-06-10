@@ -79,7 +79,8 @@ export class CronService implements OnModuleInit {
             return
         }
 
-        const left = `${(5 - (batch.current_set_number + 1)) == 0 ? "no" : (5 - (batch.current_set_number + 1))}`
+        const left = `${(5 - (batch.current_set_number))}`
+
         emails.map(async (email) => {
             const user = await this.helper.getUserByEmail(email)
             if (!user) Logger.log('No user')
