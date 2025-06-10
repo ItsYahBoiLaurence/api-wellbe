@@ -147,17 +147,29 @@ export class QuestionService {
 
             if (!tip) throw new ConflictException("Error generating Advice!")
 
+            const [newTip, newInbox] = await Promise.all([
+                await this.prisma.tips.create({
+                    data: {
+                        user: user.email,
+                        tip,
+                        created_at: this.helper.getCurrentDate(),
+                        batch_created: batch.id
+                    }
+                }),
+                await this.prisma.inbox.create({
+                    data: {
+                        receiver: user.email,
+                        body: tip,
+                        created_at: this.helper.getCurrentDate(),
+                        subject: "Wellbe Tip",
+                        tag: "tip"
+                    }
+                })
+            ])
 
-            const isSaved = await this.prisma.tips.create({
-                data: {
-                    user: user.email,
-                    tip,
-                    created_at: this.helper.getCurrentDate(),
-                    batch_created: batch.id
-                }
-            })
 
-            if (!isSaved) throw new ConflictException("Error saving tip!")
+            if (!newTip) throw new ConflictException("Error saving tip!")
+            if (!newInbox) throw new ConflictException("Error saving inbox")
 
             return { message: "Answer submitted successfully!" }
         }
@@ -198,17 +210,28 @@ export class QuestionService {
 
         if (!tip) throw new ConflictException("Error generating Advice!")
 
+        const [newTip, newInbox] = await Promise.all([
+            await this.prisma.tips.create({
+                data: {
+                    user: user.email,
+                    tip,
+                    created_at: this.helper.getCurrentDate(),
+                    batch_created: batch.id
+                }
+            }),
+            await this.prisma.inbox.create({
+                data: {
+                    receiver: user.email,
+                    body: tip,
+                    created_at: this.helper.getCurrentDate(),
+                    subject: "Wellbe Tip",
+                    tag: "tip"
+                }
+            })
+        ])
 
-        const isSaved = await this.prisma.tips.create({
-            data: {
-                user: user.email,
-                tip,
-                created_at: this.helper.getCurrentDate(),
-                batch_created: batch.id
-            }
-        })
-
-        if (!isSaved) throw new ConflictException("Error saving tip!")
+        if (!newTip) throw new ConflictException("Error saving tip!")
+        if (!newInbox) throw new ConflictException("Error saving inbox")
 
         return { message: "Answer submitted successfully!" }
     }

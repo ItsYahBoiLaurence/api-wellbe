@@ -164,5 +164,6 @@ model Inbox {
   receiver   String
   body       String
   created_at DateTime
-  opened     Boolean
+  opened     Boolean  @default(false)
+  tag        String
 }
