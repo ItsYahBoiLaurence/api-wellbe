@@ -8,6 +8,7 @@ import { HelperModule } from '../helper/helper.module';
 @Module({
   providers: [EmailerService],
   imports: [
+    ConfigModule,
     HelperModule,
     ConfigModule,
     MailerModule.forRootAsync({

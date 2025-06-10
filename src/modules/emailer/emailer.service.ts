@@ -2,6 +2,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { HelperService } from '../helper/helper.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class EmailerService {
@@ -10,7 +11,8 @@ export class EmailerService {
 
   constructor(
     private readonly mailerService: MailerService,
-    private readonly helper: HelperService
+    private readonly helper: HelperService,
+    private readonly configService: ConfigService
   ) { }
 
   private welcomeTemplate = ({ user, company }: { user: string, company: string }) => {
@@ -283,7 +285,7 @@ export class EmailerService {
             <li>Answer a few quick questions about your workplace wellbeing.</li>
             <li>Receive personalized insights to help improve your experience.</li>
           </ul>
-          <p><a href="${link}" style="color: #040237;">Start Your Wellbeing Assessment</a></p>
+          <p><a href="${this.configService.get<string>('INVITE_LINK')}" style="color: #040237;">Start Your Wellbeing Assessment</a></p>
           <p>Your wellbeing matters, and we’re here to support you every step of the way. If you have any questions, feel free to reach out.</p>
           <p>Looking forward to your participation!<p>
           <p>Best regards,</p>
