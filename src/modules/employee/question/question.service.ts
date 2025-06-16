@@ -32,9 +32,9 @@ export class QuestionService {
 
         const batch = await this.helper.getLatestBatch(company_name.name)
 
-        if (!batch) throw new NotFoundException("No Batch Available!")
-
         if (batch.is_completed === true) throw new ConflictException("Batch Completed!")
+
+        if (!batch) throw new NotFoundException("No Batch Available!")
 
         const user = await this.prisma.employee_Under_Batch.findFirst({
             where: {
