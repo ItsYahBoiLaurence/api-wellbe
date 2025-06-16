@@ -15,7 +15,7 @@ export class QuestionService {
         private readonly ai: OpenaiService
     ) { }
 
-    private async getMissedQuestion(arr: [], batch_num: number) {
+    private getMissedQuestion(arr: [], batch_num: number) {
         for (let i = 0; i < batch_num - 1; i++) {
             if (arr[i] === false) {
                 return i
@@ -32,9 +32,9 @@ export class QuestionService {
 
         const batch = await this.helper.getLatestBatch(company_name.name)
 
-        if (batch?.is_completed === true) throw new ConflictException("Batch Completed!")
-
         if (!batch) throw new NotFoundException("No Batch Available!")
+
+        if (batch.is_completed === true) throw new ConflictException("Batch Completed!")
 
         const user = await this.prisma.employee_Under_Batch.findFirst({
             where: {
@@ -45,7 +45,7 @@ export class QuestionService {
 
         if (!user) throw new NotFoundException("User not found!")
 
-        const missed = await this.getMissedQuestion(user.set_participation as [], batch.current_set_number)
+        const missed = this.getMissedQuestion(user.set_participation as [], batch.current_set_number)
 
         if (missed !== null) {
             const missed_question_indeces = user.question_bank?.[missed]
