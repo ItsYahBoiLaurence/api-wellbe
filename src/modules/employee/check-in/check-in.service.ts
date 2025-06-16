@@ -16,7 +16,22 @@ export class CheckInService {
 
         const user = await this.helper.getUserByEmail(sub)
 
-        const latest_batch = await this.helper.getLatestBatch(company)
+        const latest_batch = await this.prisma.batch_Record.findFirst({
+            where: {
+                company_name: company
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        })
+
+        if (!latest_batch) return {
+            is_batch_available: false,
+            check_in_count: null,
+            has_pending_questions: null,
+            is_user_finished: null,
+            next_check_in_date: null
+        }
 
         if (latest_batch.is_completed === true) return {
             is_batch_available: false,
@@ -37,8 +52,13 @@ export class CheckInService {
             }
         })
 
-        if (!employee_progress) throw new ConflictException("User is not included to the batch!")
-
+        if (!employee_progress) return {
+            is_batch_available: false,
+            check_in_count: null,
+            has_pending_questions: null,
+            is_user_finished: null,
+            next_check_in_date: null
+        }
         const hasPendingQuestion = this.hasMissedQuestions(employee_progress.set_participation as [], latest_batch.current_set_number)
 
         const frequency = latest_batch.frequency
