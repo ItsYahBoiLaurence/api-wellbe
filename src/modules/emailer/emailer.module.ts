@@ -2,10 +2,13 @@ import { Module } from '@nestjs/common';
 import { EmailerService } from './emailer.service';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { PrismaModule } from '../prisma/prisma.module';
+import { HelperModule } from '../helper/helper.module';
 
 @Module({
   providers: [EmailerService],
   imports: [
+    HelperModule,
     ConfigModule,
     MailerModule.forRootAsync({
       imports: [ConfigModule],

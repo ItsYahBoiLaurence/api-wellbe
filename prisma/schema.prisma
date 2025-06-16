@@ -157,3 +157,13 @@ model ScatterData {
   scatterData  Json
   created_at   DateTime
 }
+
+model Inbox {
+  id         Int      @id @default(autoincrement())
+  subject    String
+  receiver   String
+  body       String
+  created_at DateTime
+  opened     Boolean  @default(false)
+  tag        String
+}

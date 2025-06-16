@@ -55,10 +55,20 @@ export class BatchService {
 
         if (is_ready_for_new_batch === false) throw new ConflictException('Previous Batch not yet finished.')
 
+        const frequency = await this.prisma.settings.findFirst({
+            where: {
+                config_id: company_name.name
+            }
+        })
+
+        if (!frequency) throw new ConflictException("No settings for this company")
+
+        const daysToAdd = frequency.frequency == "DAILY" ? 1 : frequency.frequency == "WEEKLY" ? 7 : 0
+
         const start = new Date()
         start.setHours(start.getHours() + 8)
         const end = new Date(start)
-        end.setDate(start.getDate() + 7)
+        end.setDate(start.getDate() + (5 * daysToAdd))
 
         const newBatch = await this.prisma.batch_Record.create({
             data: {

@@ -1,12 +1,17 @@
 import { MailerService } from '@nestjs-modules/mailer';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { HelperService } from '../helper/helper.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class EmailerService {
 
   private console = new Logger(EmailerService.name)
 
-  constructor(private readonly mailerService: MailerService,
+  constructor(
+    private readonly mailerService: MailerService,
+    private readonly helper: HelperService,
   ) { }
 
   private welcomeTemplate = ({ user, company }: { user: string, company: string }) => {
@@ -219,6 +224,7 @@ export class EmailerService {
     </html>`
   }
 
+
   private inviteTemplate = ({ user, company, link }: { user: string, company: string, link: string }) => {
     return `<!DOCTYPE html>
     <html>
@@ -293,6 +299,48 @@ export class EmailerService {
     </html>`
   }
 
+  private reminderContent = ({ user, left, company }) => {
+    return `
+    <div>
+          <p>You have ${left} sessions left to complete!</p>
+          <p>Dear ${user},</p>
+          <p>
+            We want to remind you that you have ${left} more sessions pending that need your attention. Taking a moment to answer your current form will help you understand where you stand in terms of your mental well-being. By completing these sessions, you’ll gain valuable insights into how you’re feeling, identify areas of improvement, and receive personalized recommendations to support your overall health.
+          </p>
+          <p>Don’t wait—your well-being is important, and completing your forms is a key step in understanding how to better care for yourself. Answer your current form now, and continue your journey towards a healthier, more balanced state of mind.</p>
+          <p>We’re here to support you every step of the way!</p>
+          <p>Tap this <a href="https://employee-wellbe.vercel.app/" style="color: #040237;">link</a> to return to your Wellbe app and continue your journey to workplace wellbeing!</p>
+          <p>If you have any questions, feel free to <a href="mailto:support@example.com" style="color: #040237;">contact us</a>.</p>
+          <p>Best regards,</p>
+          <p>The ${company} Team</p>
+        </div>
+    `
+  }
+
+  private startContent = ({ user, company }) => {
+    return `
+    <div class="content">
+          <p>Start your journey to a better you with WellBe – because your health matters!</p>
+          <p>Dear ${user},</p>
+          <p>
+              Your forms are ready to fill up! You can go to your app and start answering our WellBe questions. In order for you to receive personalized advice and monitor your well-being, please take a few minutes to complete the assessment. This will help us understand your current well-being status and provide you with the necessary support to enhance your well-being at work.
+          </p>
+          <p>Here's are the Benefits of Monitoring Your Wellbeing:</p>
+          <ul>
+              <li><strong>Early Detection:</strong> Identify signs of stress or anxiety before they escalate.</li>
+              <li><strong>Improved Resilience:</strong> Build coping strategies to handle life's challenges.</li>
+              <li><strong>Better Decision-Making:</strong> Make informed choices about self-care and seeking support.</li>
+              <li><strong>Enhanced Relationships:</strong> Manage emotions for healthier personal and professional connections.</li>
+              <li><strong>Increased Productivity:</strong> Stay focused and motivated, improving work performance.</li>
+          </ul>
+          <p>Tap this <a href="/" style="color:rgb(8, 1, 183);">link</a> to start your Wellbe journey!</p>
+          <p>If you have any questions, feel free to <a href="mailto:support@example.com" style="color: #040237;">contact us</a>.</p>
+          <p>Best regards,</p>
+          <p>The ${company} Team</p>
+      </div>
+    `
+  }
+
   async welcomeEmail(email_data: { to: string, subject: string, company: string, user: string }) {
     if (!email_data) throw new NotFoundException("Email not found!")
     const { to, subject, company, user } = email_data
@@ -302,6 +350,13 @@ export class EmailerService {
         subject,
         html: this.welcomeTemplate({ company, user })
       })
+
+      await this.helper.saveToInbox(
+        subject,
+        to,
+        this.startContent({ company, user }),
+        'email'
+      )
     } catch (error) {
       this.console.log(error)
     }
@@ -315,6 +370,13 @@ export class EmailerService {
       subject,
       html: this.reminderTemplate({ company, user, left })
     })
+
+    await this.helper.saveToInbox(
+      subject,
+      to,
+      this.reminderContent({ user, left, company }),
+      'email'
+    )
   }
   //deadline reminder email
   async deadlineEmail() { }

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserQuery } from 'src/types/user';
 import * as bcrypt from 'bcrypt'
@@ -301,7 +301,6 @@ export class HelperService {
         return advice[user_score]
     }
 
-
     async getAdviceForUser(data: AnswerModel[]) {
 
         const advices: string[] = []
@@ -326,7 +325,6 @@ export class HelperService {
         date.setHours(date.getHours() + 8)
         return date
     }
-
 
     async getBatchTips(batch_id: number, user: string) {
 
@@ -387,7 +385,19 @@ export class HelperService {
         XMonthsAgo.setMonth(XMonthsAgo.getMonth() - data_period)
         return XMonthsAgo
     }
+
+    async saveToInbox(subject: string, receiver: string, body: string, tag: string) {
+        const newInbox = await this.prisma.inbox.create({
+            data: {
+                subject,
+                receiver,
+                body,
+                tag,
+                created_at: this.getCurrentDate()
+            }
+        })
+        if (!newInbox) throw new ConflictException("Error Saving Message!")
+
+        return newInbox
+    }
 }
-
-
-

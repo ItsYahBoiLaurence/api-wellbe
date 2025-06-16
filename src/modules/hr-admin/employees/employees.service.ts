@@ -4,6 +4,7 @@ import { HelperService } from 'src/modules/helper/helper.service';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { JwtPayload } from 'src/types/jwt-payload';
 import { CsvParcerService } from 'src/modules/csv-parcer/csv-parcer.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class EmployeesService {
@@ -12,7 +13,10 @@ export class EmployeesService {
         private readonly prisma: PrismaService,
         private readonly helper: HelperService,
         private readonly mail: EmailerService,
-        private readonly parser: CsvParcerService) { }
+        private readonly parser: CsvParcerService,
+        private readonly configService: ConfigService
+
+    ) { }
 
     async getAllEmployees(user_data: JwtPayload, department: string) {
 
@@ -50,10 +54,10 @@ export class EmployeesService {
     async sendInvite(user_data: JwtPayload, payload: { first_name: string, last_name: string, email: string, department: string }) {
         const { company } = user_data
         const user_comp = await this.helper.getCompany(company)
-
+        const domain_link = this.configService.get<string>("INVITE_LINK")
         try {
             // const hash = encryptData(finalPayload)
-            const link = `https://employee-wellbe.vercel.app/sign-up?email=${payload.email}&firstname=${payload.first_name}&lastname=${payload.last_name}&department=${payload.department}&company=${user_comp.name}`
+            const link = `${domain_link}/sign-up?email=${payload.email}&firstname=${payload.first_name}&lastname=${payload.last_name}&department=${payload.department}&company=${user_comp.name}`
             this.mail.inviteEmployee(payload.first_name, payload.email, user_comp.name, link)
             return { message: "Invite Sent" }
         } catch (e) {
@@ -82,9 +86,9 @@ export class EmployeesService {
                 failedInvites.push({ item, missingFields });
                 continue; // skip sending invite for this item
             }
-
+            const domain_link = this.configService.get<string>("INVITE_LINK")
             try {
-                const link = `https://employee-wellbe.vercel.app/sign-up?email=${item.email}&firstname=${item.first_name}&lastname=${item.last_name}&department=${item.department}&company=${company}`
+                const link = `${domain_link}/sign-up?email=${item.email}&firstname=${item.first_name}&lastname=${item.last_name}&department=${item.department}&company=${company}`
                 this.mail.inviteEmployee(item.first_name, item.email, company, link)
                 successInvites.push({ item });
             } catch (err) {
