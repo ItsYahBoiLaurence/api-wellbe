@@ -3,11 +3,6 @@ generator client {
   previewFeatures = ["metrics"]
 }
 
-// datasource db {
-//   provider = "postgresql"
-//   url      = env("DATABASE_URL")
-// }
-
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
@@ -18,10 +13,10 @@ model Company {
   id           Int            @id @default(autoincrement())
   name         String         @unique
   created_at   DateTime       @default(now())
-  departments  Department[]
   batch_record Batch_Record[]
-  Settings     Settings[]
+  departments  Department[]
   ScatterData  ScatterData[]
+  Settings     Settings?
 }
 
 model Department {
@@ -53,19 +48,19 @@ model Employee {
 model Tips {
   id            Int      @id @default(autoincrement())
   user          String
-  user_email    Employee @relation(fields: [user], references: [email], onDelete: Cascade)
   tip           String
   created_at    DateTime
   batch_created Int
+  user_email    Employee @relation(fields: [user], references: [email], onDelete: Cascade)
 }
 
 model UserAdvice {
   id            Int      @id @default(autoincrement())
   user          String
-  user_email    Employee @relation(fields: [user], references: [email], onDelete: Cascade)
   advice        String
   created_at    DateTime
   batch_created Int
+  user_email    Employee @relation(fields: [user], references: [email], onDelete: Cascade)
 
   @@unique([user, batch_created])
 }
@@ -85,10 +80,10 @@ model Batch_Record {
   end_date              DateTime
   is_completed          Boolean                @default(false)
   company_name          String
-  company               Company                @relation(fields: [company_name], references: [name], onDelete: Cascade)
   current_set_number    Int                    @default(1)
-  employees_under_batch Employee_Under_Batch[]
   frequency             Frequency
+  company               Company                @relation(fields: [company_name], references: [name], onDelete: Cascade)
+  employees_under_batch Employee_Under_Batch[]
   Wellbeing             Wellbeing[]
 }
 
@@ -98,11 +93,11 @@ model Employee_Under_Batch {
   question_bank     Json
   is_completed      Boolean      @default(false)
   batch_id          Int
-  batch             Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
   created_at        DateTime
-  Answer            Answer[]
-  set_participation Json         @default("[false,false,false,false,false]")
+  set_participation Json         @default("[false, false, false, false, false]")
   department_id     Int
+  Answer            Answer[]
+  batch             Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
 
   @@unique([email, batch_id])
 }
@@ -114,17 +109,10 @@ model Answer {
   employee    Employee_Under_Batch @relation(fields: [employee_id], references: [id], onDelete: Cascade)
 }
 
-enum Frequency {
-  DAILY
-  WEEKLY
-  EVERY_HOUR
-  EVERY_MINUTE
-}
-
 model Settings {
   config_id String    @id
-  company   Company   @relation(fields: [config_id], references: [name], onDelete: Cascade)
   frequency Frequency @default(DAILY)
+  company   Company   @relation(fields: [config_id], references: [name], onDelete: Cascade)
 }
 
 model Advice {
@@ -139,13 +127,13 @@ model Advice {
 model Wellbeing {
   id              Int          @id @default(autoincrement())
   user_email      String
-  user            Employee     @relation(fields: [user_email], references: [email], onDelete: Cascade)
   created_at      DateTime
   wellbeing_score Json
   batch_id        Int
-  batch           Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
   department      Int
+  batch           Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
   department_id   Department   @relation(fields: [department], references: [id], onDelete: Cascade)
+  user            Employee     @relation(fields: [user_email], references: [email], onDelete: Cascade)
 
   @@unique([user_email, batch_id])
 }
@@ -153,9 +141,9 @@ model Wellbeing {
 model ScatterData {
   id           Int      @id @default(autoincrement())
   company_name String
-  company      Company  @relation(fields: [company_name], references: [name], onDelete: Cascade)
   scatterData  Json
   created_at   DateTime
+  company      Company  @relation(fields: [company_name], references: [name], onDelete: Cascade)
 }
 
 model Inbox {
@@ -166,4 +154,11 @@ model Inbox {
   created_at DateTime
   opened     Boolean  @default(false)
   tag        String
+}
+
+enum Frequency {
+  DAILY
+  WEEKLY
+  EVERY_HOUR
+  EVERY_MINUTE
 }
