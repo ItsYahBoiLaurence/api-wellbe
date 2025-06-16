@@ -62,6 +62,58 @@ export class CheckInService {
         }
     }
 
+    async getUserStatus(user_details: JwtPayload) {
+
+        const { sub, company } = user_details
+
+        const user = await this.helper.getUserByEmail(sub)
+
+        const latest_batch = await this.helper.getLatestBatch(company)
+
+        const employee_progress = await this.prisma.employee_Under_Batch.findFirst({
+            where: {
+                batch_id: latest_batch.id,
+                email: user.email
+            }, select: {
+                set_participation: true,
+            }
+        })
+
+        if (!employee_progress) throw new ConflictException("User is not included to the batch!")
+
+        const check_ins: { id: number, check_in_date: string, status: boolean }[] = []
+
+        this.logger.log(latest_batch)
+        this.logger.log(employee_progress.set_participation)
+
+        const startDate = latest_batch.start_date
+        const frequency = latest_batch.frequency
+        const daysToAdd = frequency == "DAILY" ? 1 : frequency == "WEEKLY" ? 7 : 0
+
+        if (Array.isArray(employee_progress.set_participation)) {
+            const participation = [...employee_progress.set_participation as []]
+            participation.forEach((set, index) => {
+                const date = new Date(startDate)
+                date.setDate(date.getDate() + ((index * daysToAdd) - 1))
+                check_ins.push({
+                    id: index + 1,
+                    check_in_date: date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }),
+                    status: set
+                })
+            })
+        }
+
+
+
+        return {
+            current_quick_check: latest_batch.current_set_number,
+            check_ins
+        }
+    }
+
+
+
+
     private hasMissedQuestions(arr: [], current_set_number: number) {
         for (let i = 0; i < current_set_number; i++) {
             if (arr[i] === false) {

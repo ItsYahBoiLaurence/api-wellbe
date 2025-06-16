@@ -13,4 +13,9 @@ export class CheckInController {
     async getCheckinStatus(@CurrentUser() user_details: JwtPayload) {
         return this.service.getUserCheckInStatus(user_details)
     }
+
+    @Get('status')
+    async getUserStatus(@CurrentUser() user_details: JwtPayload) {
+        return this.service.getUserStatus(user_details)
+    }
 }
