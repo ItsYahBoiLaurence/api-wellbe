@@ -8,39 +8,39 @@ import { HelperService } from '../helper/helper.service';
 import { AnswerModel } from 'src/types/answer';
 import { OpenaiService } from '../openai/openai.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { Public } from 'src/common/decorators/public.decorators';
+import { CompanyData, CompanyModel } from 'src/types/company';
+
 
 
 @Controller('mayan-admin')
 export class MayanAdminController {
     constructor(
         private readonly service: MayanAdminService,
-        private readonly cron: CronService,
-        private readonly emailer: EmailerService,
-        private readonly helper: HelperService,
-        private readonly ai: OpenaiService,
-        private readonly prisma: PrismaService
     ) { }
 
-    @Post()
-    getSettings(@CurrentUser() user: JwtPayload, @Body() data: AnswerModel[]) {
-        const { company, sub } = user
-        return this.helper.getAdviceForUser(data)
+    @Public()
+    @Get('company')
+    getAllCompanies(@CurrentUser() user_details: JwtPayload) {
+        return this.service.getCompanyDetails(user_details)
     }
 
-    @Get()
-    async generateAiResponse(@CurrentUser() user_details: JwtPayload, @Query('company') company: string) {
-        return this.helper.getCompany(company)
+
+    @Public()
+    @Get('admin-users')
+    getAllAdmin() {
+        return this.service.getAllAdminUser()
     }
 
-    @Get('test')
-    async testing(@CurrentUser() user: JwtPayload) {
-        const { sub } = user
-        const user_data = await this.prisma.employee.findUnique({
-            where: {
-                email: sub
-            }
-        })
+    @Public()
+    @Get('company-details')
+    getCompany() {
+        return this.service.getCompanies()
+    }
 
-        return user_data
+    @Public()
+    @Post('create-company')
+    createCompany(@Body() data: CompanyModel) {
+        return this.service.createCompany(data)
     }
 }

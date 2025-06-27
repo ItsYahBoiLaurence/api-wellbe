@@ -29,11 +29,11 @@ export class UserController {
         return this.service.updateEmployee(user, payload)
     }
 
-    // @Public()
-    // @Get('password-reset')
-    // passwordReset(@Query('email') email: string) {
-    //     return this.helper.hashPass(email)
-    // }
+    @Public()
+    @Get('password-resets')
+    passwordReset(@Query('email') email: string) {
+        return this.helper.hashPass(email)
+    }
 
     // @Public()
     // @Get('password-confirm')

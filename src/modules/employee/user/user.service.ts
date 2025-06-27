@@ -42,6 +42,7 @@ export class UserService {
             }
             return resPayload
         } catch (error) {
+            Logger.log(error)
             if (error.code === 'P2002') throw new ConflictException("User already exist!")
             if (error.code === 'P2003') throw new NotFoundException('The specified company does not exist.');
         }
