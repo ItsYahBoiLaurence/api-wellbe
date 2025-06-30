@@ -123,16 +123,11 @@ export class CheckInService {
             })
         }
 
-
-
         return {
             current_quick_check: latest_batch.current_set_number,
             check_ins
         }
     }
-
-
-
 
     private hasMissedQuestions(arr: [], current_set_number: number) {
         for (let i = 0; i < current_set_number; i++) {

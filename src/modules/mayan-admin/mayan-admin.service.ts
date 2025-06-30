@@ -85,25 +85,29 @@ export class MayanAdminService {
         return company_details
     }
 
-    async createCompany() {
-
-        const newCompany = await this.prisma.company.create({
-            data: {
-                name: "Laurence Inc.",
-                // departments: {
-                //     create: {
-                //         name: "Human Resources"
-                //     }
-                // },
-                // Settings: {
-                //     create: {}
-                // }
-            },
-            // include: {
-            //     departments: true
-            // }
-        })
-        if (!newCompany) throw new ConflictException("Error Creating new Company")
-        return newCompany
+    async createCompany(data: CompanyModel) {
+        try {
+            const newCompany = await this.prisma.company.create({
+                data: {
+                    name: data.name,
+                    departments: {
+                        create: {
+                            name: "Human Resources"
+                        }
+                    },
+                    Settings: {
+                        create: {}
+                    }
+                },
+            })
+            if (!newCompany) throw new ConflictException("Error Creating new Company")
+            return newCompany
+        } catch (error) {
+            if (error.code === 'P2002') throw new ConflictException("Company Already Exist")
+        }
     }
+
+    // async generateCUIDData() {
+    //     return this.helper.generateCUID()
+    // }
 }

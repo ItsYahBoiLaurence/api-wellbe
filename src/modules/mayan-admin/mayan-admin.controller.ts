@@ -41,7 +41,14 @@ export class MayanAdminController {
     @Public()
     @Post('create-company')
     createCompany(@Body() data: CompanyModel) {
-        return this.service.createCompany()
+        return this.service.createCompany(data)
     }
+
+    // @Public()
+    // @Get('cuid')
+    // generateCUID() {
+    //     return this.service.generateCUIDData()
+    // }
+
 
 }
