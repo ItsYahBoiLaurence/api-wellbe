@@ -1,5 +1,5 @@
 export interface CompanyModel {
-    name: string
+    company: string
 }
 
 export interface CompanyData {

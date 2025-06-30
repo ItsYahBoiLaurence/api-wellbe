@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, Logger, NotFoundExc
 import { HelperService } from 'src/modules/helper/helper.service';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { JwtPayload } from 'src/types/jwt-payload';
-import { UserModel } from 'src/types/user';
+import { UserModel, UserWithRole } from 'src/types/user';
 
 @Injectable()
 export class UserService {
@@ -12,9 +12,8 @@ export class UserService {
         private readonly helper: HelperService
     ) { }
 
-    async createEmployee(payload: UserModel) {
+    async createEmployee(payload: UserWithRole) {
         if (!payload) throw new BadRequestException("Invalid Payload")
-
         const { email, first_name, last_name, password, company, department_name } = payload
 
         const hashed_pass = await this.helper.hashPass(password)
@@ -23,6 +22,8 @@ export class UserService {
 
         const department_id = await this.helper.getDepartmentId(company_name.name, department_name)
 
+        this.console.log(payload.role)
+
         try {
             const newUser = await this.prisma.employee.create({
                 data: {
@@ -30,7 +31,8 @@ export class UserService {
                     first_name,
                     last_name,
                     department_id,
-                    password: hashed_pass
+                    password: hashed_pass,
+                    role: payload.role ?? undefined
                 },
             })
             if (!newUser) throw new ConflictException("Error creating new user!")

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Patch, Post, Query } from '@nestjs/common';
 import { UserService } from './user.service';
-import { UserModel, UserQuery } from 'src/types/user';
+import { UserModel, UserQuery, UserWithRole } from 'src/types/user';
 import { HelperService } from 'src/modules/helper/helper.service';
 import { Public } from 'src/common/decorators/public.decorators';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -20,7 +20,7 @@ export class UserController {
 
     @Public()
     @Post()
-    registerUser(@Body() payload: UserModel) {
+    registerUser(@Body() payload: UserWithRole) {
         return this.service.createEmployee(payload)
     }
 

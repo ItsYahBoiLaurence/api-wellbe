@@ -10,6 +10,7 @@ import { OpenaiService } from '../openai/openai.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Public } from 'src/common/decorators/public.decorators';
 import { CompanyData, CompanyModel } from 'src/types/company';
+import { User } from 'src/types/user';
 
 
 
@@ -42,6 +43,18 @@ export class MayanAdminController {
     @Post('create-company')
     createCompany(@Body() data: CompanyModel) {
         return this.service.createCompany(data)
+    }
+
+    @Public()
+    @Get('department')
+    getAllDepartmentsInCompany(@Query('company') company: string) {
+        return this.service.getAllDepartments(company)
+    }
+
+    @Public()
+    @Post('inviteAdmin')
+    inviteAdmin(@Body() payload: User) {
+        return this.service.inviteAdminUser(payload)
     }
 
     // @Public()
