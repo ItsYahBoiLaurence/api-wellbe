@@ -85,22 +85,23 @@ export class MayanAdminService {
         return company_details
     }
 
-    async createCompany(details: CompanyModel) {
+    async createCompany() {
+
         const newCompany = await this.prisma.company.create({
             data: {
-                name: "asdasd",
-                departments: {
-                    create: {
-                        name: "Human Resources"
-                    }
-                },
-                Settings: {
-                    create: {}
-                }
+                name: "Laurence Inc.",
+                // departments: {
+                //     create: {
+                //         name: "Human Resources"
+                //     }
+                // },
+                // Settings: {
+                //     create: {}
+                // }
             },
-            include: {
-                departments: true
-            }
+            // include: {
+            //     departments: true
+            // }
         })
         if (!newCompany) throw new ConflictException("Error Creating new Company")
         return newCompany

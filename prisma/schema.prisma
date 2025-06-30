@@ -10,13 +10,13 @@ datasource db {
 }
 
 model Company {
-  id           Int            @id @default(autoincrement())
   name         String         @unique
   created_at   DateTime       @default(now())
   batch_record Batch_Record[]
   departments  Department[]
   ScatterData  ScatterData[]
   Settings     Settings?
+  cuid      String   @id @default(cuid())
 }
 
 model Department {

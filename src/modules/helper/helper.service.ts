@@ -5,6 +5,8 @@ import * as bcrypt from 'bcrypt'
 import { JwtPayload } from 'src/types/jwt-payload';
 import { AnswerModel } from 'src/types/answer';
 import { Exception } from 'handlebars';
+import * as cuid from 'cuid';
+
 
 @Injectable()
 export class HelperService {
@@ -400,4 +402,5 @@ export class HelperService {
 
         return newInbox
     }
+
 }

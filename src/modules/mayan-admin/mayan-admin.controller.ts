@@ -41,6 +41,7 @@ export class MayanAdminController {
     @Public()
     @Post('create-company')
     createCompany(@Body() data: CompanyModel) {
-        return this.service.createCompany(data)
+        return this.service.createCompany()
     }
+
 }
