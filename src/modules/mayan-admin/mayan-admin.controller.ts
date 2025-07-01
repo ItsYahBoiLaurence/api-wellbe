@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Logger, NotFoundException, Post, Query, } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Logger, NotFoundException, Post, Query, } from '@nestjs/common';
 import { MayanAdminService } from './mayan-admin.service';
 import { CronService } from '../cron/cron.service';
 import { EmailerService } from '../emailer/emailer.service';
@@ -53,10 +53,22 @@ export class MayanAdminController {
 
     @Public()
     @Post('inviteAdmin')
-    inviteAdmin(@Body() payload: User) {
+    inviteAdmin(@Body() payload: {
+        email: string
+        first_name: string
+        last_name: string
+        department: string
+        company: string
+    }) {
         return this.service.inviteAdminUser(payload)
     }
 
+
+    // @Public()
+    // @Delete()
+    // deleteCompany(){
+    //     return this.
+    // }
     // @Public()
     // @Get('cuid')
     // generateCUID() {

@@ -139,10 +139,17 @@ export class MayanAdminService {
         }
     }
 
-    async inviteAdminUser(data: User) {
+    async inviteAdminUser(data: {
+        email: string
+        first_name: string
+        last_name: string
+        department: string
+        company: string
+    }) {
         const domain_link = this.config.get<string>("INVITE_LINK")
+        Logger.log(data)
         try {
-            const link = `${domain_link}/sign-up?email=${data.email}&firstname=${data.first_name}&lastname=${data.last_name}&department=${data.department_name}&company=${data.company}&role=admin`
+            const link = `${domain_link}/sign-up?email=${data.email}&firstname=${data.first_name}&lastname=${data.last_name}&department=${data.department}&company=${data.company}&role=admin`
             this.mail.inviteEmployee(data.first_name, data.email, data.company, link)
             return { message: "Invite Sent" }
         } catch (e) {
