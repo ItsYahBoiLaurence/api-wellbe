@@ -63,6 +63,21 @@ export class MayanAdminController {
         return this.service.inviteAdminUser(payload)
     }
 
+    @Public()
+    @Delete('delete-company')
+    deleteCompany(@Query('companyId') companyId: string) {
+        return this.service.deleteCompany(companyId)
+    }
+
+
+    @Get('generate-data')
+    generateData(@CurrentUser() user_data: JwtPayload) {
+        return this.service.generateData(user_data)
+    }
+
+
+
+
 
     // @Public()
     // @Delete()

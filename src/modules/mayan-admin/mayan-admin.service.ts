@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CompanyData, CompanyModel } from 'src/types/company';
 import { UserService } from '../user/user.service';
@@ -7,6 +7,9 @@ import { JwtPayload } from 'src/types/jwt-payload';
 import { User } from 'src/types/user';
 import { ConfigService } from '@nestjs/config';
 import { EmailerService } from '../emailer/emailer.service';
+import { AnswerLabel, Tally } from 'src/types/question-tally';
+import { RawAnswer } from 'src/types/answer';
+import { Question, RawAnswerItem, ResultItem } from 'src/types/mayan-admin';
 
 @Injectable()
 export class MayanAdminService {
@@ -41,6 +44,7 @@ export class MayanAdminService {
             );
 
             return {
+                id: company.id,
                 name: company.name,
                 date_created: company.created_at,
                 employee_count: totalEmployees,
@@ -127,6 +131,7 @@ export class MayanAdminService {
     }
 
     async deleteCompany(id: string) {
+        if (!id) throw new ConflictException("Company ID is required")
         try {
             await this.prisma.company.delete({
                 where: {
@@ -158,7 +163,107 @@ export class MayanAdminService {
     }
 
 
-    // async generateCUIDData() {
-    //     return this.helper.generateCUID()
-    // }
+    async generateData(user_data: JwtPayload) {
+        const { company } = user_data
+
+        // 1. Fetch the latest completed batch record
+        const latestBatch = await this.prisma.batch_Record.findFirst({
+            where: { is_completed: true, company_name: company },
+            select: { id: true, created_at: true },
+            orderBy: { created_at: 'desc' } // Assuming 'asc' means oldest completed, if you mean latest, use 'desc'
+        });
+
+        if (!latestBatch) {
+            throw new NotFoundException("No completed batch found.");
+        }
+
+        // 2. Fetch all raw answers for the batch
+        const rawAnswers = await this.prisma.answer.findMany({
+            where: {
+                employee: {
+                    batch_id: latestBatch.id
+                }
+            },
+            select: {
+                answer: true
+            }
+        }) as RawAnswerItem[]; // Type assertion after fetching
+
+        if (rawAnswers.length === 0) {
+            throw new NotFoundException("No answers found for the completed batch.");
+        }
+
+        // 3. Flatten and transform answers
+        // Assuming rawAnswers[x].answer is already an array of single-key objects, e.g., [{ "1": 4 }, { "2": 3 }]
+        const flattenedAnswers = rawAnswers.flatMap(item => item.answer);
+
+        const valueToLabel: Record<number, AnswerLabel> = {
+            4: "SA",
+            3: "A",
+            2: "D",
+            1: "SD",
+        };
+
+        // 4. Tally the answers
+        const tallyMap: Record<string, Tally> = {};
+        const questionIdsToFetch = new Set<number>(); // Collect QIDs for batch fetching
+
+        flattenedAnswers.forEach((entry) => {
+            // Assuming entry is like { "questionId": value }
+            const questionId = Object.keys(entry)[0];
+            const value = entry[questionId];
+
+            if (value === undefined || valueToLabel[value] === undefined) {
+                console.warn(`Skipping invalid answer value for question ${questionId}: ${value}`);
+                return; // Or throw an error, depending on desired strictness
+            }
+
+            const label = valueToLabel[value];
+            tallyMap[questionId] ??= { SA: 0, A: 0, D: 0, SD: 0 };
+            tallyMap[questionId][label]++;
+            questionIdsToFetch.add(parseInt(questionId));
+        });
+
+        // 5. Fetch all questions in a single query
+        const questions = await this.prisma.question.findMany({
+            where: {
+                id: {
+                    in: Array.from(questionIdsToFetch)
+                }
+            },
+            omit: {
+                subdomain: true,
+                is_flipped: true
+            }
+        });
+
+        const questionMap = new Map<number, Question>();
+        questions.forEach(q => questionMap.set(q.id, q));
+
+        // 6. Format the final result
+        const result: ResultItem[] = [];
+        for (const qidString in tallyMap) {
+            const qid = parseInt(qidString);
+            const answers = tallyMap[qidString];
+            const question = questionMap.get(qid);
+
+            if (!question) {
+                console.warn(`Question with ID ${qid} not found in database. Skipping.`);
+                continue;
+            }
+
+            const respondents = Object.values(answers).reduce((sum, count) => sum + count, 0);
+
+            result.push({
+                question: question,
+                respondents: respondents,
+                answer: answers,
+            });
+        }
+
+        return {
+            results: result,
+            date: latestBatch.created_at,
+        }
+    }
 }

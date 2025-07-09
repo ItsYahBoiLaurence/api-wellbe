@@ -403,4 +403,18 @@ export class HelperService {
         return newInbox
     }
 
+    async getQuestionById(id: number) {
+        const question = await this.prisma.question.findFirst({
+            where: {
+                id
+            },
+            omit: {
+                subdomain: true,
+                is_flipped: true,
+            }
+        })
+        if (!question) throw new NotFoundException("Question not Found!")
+        return question
+    }
+
 }
