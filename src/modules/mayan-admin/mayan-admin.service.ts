@@ -164,20 +164,20 @@ export class MayanAdminService {
 
 
     async generateData(user_data: JwtPayload) {
-        const { company } = user_data
+        const { company } = user_data;
 
-        // 1. Fetch the latest completed batch record
+        // 1. Fetch latest completed batch
         const latestBatch = await this.prisma.batch_Record.findFirst({
             where: { is_completed: true, company_name: company },
             select: { id: true, created_at: true },
-            orderBy: { created_at: 'desc' } // Assuming 'asc' means oldest completed, if you mean latest, use 'desc'
+            orderBy: { created_at: 'desc' }
         });
 
         if (!latestBatch) {
             throw new NotFoundException("No completed batch found.");
         }
 
-        // 2. Fetch all raw answers for the batch
+        // 2. Fetch raw answers
         const rawAnswers = await this.prisma.answer.findMany({
             where: {
                 employee: {
@@ -187,14 +187,13 @@ export class MayanAdminService {
             select: {
                 answer: true
             }
-        }) as RawAnswerItem[]; // Type assertion after fetching
+        }) as RawAnswerItem[];
 
         if (rawAnswers.length === 0) {
             throw new NotFoundException("No answers found for the completed batch.");
         }
 
-        // 3. Flatten and transform answers
-        // Assuming rawAnswers[x].answer is already an array of single-key objects, e.g., [{ "1": 4 }, { "2": 3 }]
+        // 3. Flatten answers
         const flattenedAnswers = rawAnswers.flatMap(item => item.answer);
 
         const valueToLabel: Record<number, AnswerLabel> = {
@@ -204,18 +203,16 @@ export class MayanAdminService {
             1: "SD",
         };
 
-        // 4. Tally the answers
         const tallyMap: Record<string, Tally> = {};
-        const questionIdsToFetch = new Set<number>(); // Collect QIDs for batch fetching
+        const questionIdsToFetch = new Set<number>();
 
         flattenedAnswers.forEach((entry) => {
-            // Assuming entry is like { "questionId": value }
             const questionId = Object.keys(entry)[0];
             const value = entry[questionId];
 
             if (value === undefined || valueToLabel[value] === undefined) {
                 console.warn(`Skipping invalid answer value for question ${questionId}: ${value}`);
-                return; // Or throw an error, depending on desired strictness
+                return;
             }
 
             const label = valueToLabel[value];
@@ -224,23 +221,53 @@ export class MayanAdminService {
             questionIdsToFetch.add(parseInt(questionId));
         });
 
-        // 5. Fetch all questions in a single query
+        const questionIds = Array.from(questionIdsToFetch);
+
+        // 4. Generate level per question
+        const questionLevels = new Map<number, "LOW" | "BELOW_AVERAGE" | "AVERAGE" | "HIGH">();
+
+        for (const id in tallyMap) {
+            const qid = parseInt(id);
+            const answers = tallyMap[id];
+
+            const agree = answers["SA"] + answers["A"];
+            const total = agree + answers["D"] + answers["SD"];
+            const percentage = (agree / total) * 100;
+
+            let label: "LOW" | "BELOW_AVERAGE" | "AVERAGE" | "HIGH";
+
+            if (percentage <= 25) label = "LOW";
+            else if (percentage <= 50) label = "BELOW_AVERAGE";
+            else if (percentage <= 75) label = "AVERAGE";
+            else label = "HIGH";
+
+            questionLevels.set(qid, label);
+        }
+
+        // 5. Fetch questions and all interpretations
         const questions = await this.prisma.question.findMany({
             where: {
                 id: {
-                    in: Array.from(questionIdsToFetch)
+                    in: questionIds
                 }
             },
-            omit: {
-                subdomain: true,
-                is_flipped: true
+            select: {
+                id: true,
+                question: true,
+                domain: true,
+                interpretation: true // fetch all and filter in JS
             }
         });
 
+        // 6. Filter interpretations based on per-question level
         const questionMap = new Map<number, Question>();
-        questions.forEach(q => questionMap.set(q.id, q));
+        questions.forEach(q => {
+            const level = questionLevels.get(q.id);
+            q.interpretation = q.interpretation?.filter(i => i.score_band === level);
+            questionMap.set(q.id, q);
+        });
 
-        // 6. Format the final result
+        // 7. Format final results
         const result: ResultItem[] = [];
         for (const qidString in tallyMap) {
             const qid = parseInt(qidString);
@@ -255,8 +282,8 @@ export class MayanAdminService {
             const respondents = Object.values(answers).reduce((sum, count) => sum + count, 0);
 
             result.push({
-                question: question,
-                respondents: respondents,
+                question,
+                respondents,
                 answer: answers,
             });
         }
@@ -264,6 +291,7 @@ export class MayanAdminService {
         return {
             results: result,
             date: latestBatch.created_at,
-        }
+        };
     }
+
 }

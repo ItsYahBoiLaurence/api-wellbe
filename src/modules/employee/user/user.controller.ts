@@ -35,6 +35,19 @@ export class UserController {
         return this.helper.hashPass(email)
     }
 
+    @Public()
+    @Post('password-reset')
+    passwordResetRequest(@Body('email') email: string) {
+        return this.service.passwordReset(email)
+    }
+
+
+    @Public()
+    @Post('change-password')
+    passwordChange(@Body() payload: { email: string, password: string }) {
+        return this.service.passwordChange(payload)
+    }
+
     // @Public()
     // @Get('password-confirm')
     // passwordConfirm(@Query('pass') pass: string) {

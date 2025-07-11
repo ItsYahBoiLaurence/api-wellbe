@@ -1,4 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { EmailerService } from 'src/modules/emailer/emailer.service';
 import { HelperService } from 'src/modules/helper/helper.service';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { JwtPayload } from 'src/types/jwt-payload';
@@ -9,7 +11,9 @@ export class UserService {
     private console = new Logger(UserService.name)
     constructor(
         private readonly prisma: PrismaService,
-        private readonly helper: HelperService
+        private readonly helper: HelperService,
+        private readonly emailer: EmailerService,
+        private readonly config: ConfigService
     ) { }
 
     async createEmployee(payload: UserWithRole) {
@@ -81,5 +85,29 @@ export class UserService {
         if (!newInfo) throw new ConflictException("Update error")
 
         return newInfo
+    }
+
+    async passwordReset(email: string) {
+        const user = await this.helper.getUserByEmail(email)
+        const baseUrl = this.config.get<string>("INVITE_LINK")
+        const link = `${baseUrl}/change-password?data=${btoa(user.email)}`
+        Logger.log(link)
+        return this.emailer.changePasswordEmail(user.first_name, link, user.email)
+    }
+
+    async passwordChange(payload: { email: string, password: string }) {
+        if (!payload.password || payload.password == undefined || !payload.email || payload.email == undefined) throw new BadRequestException
+        Logger.log(`${payload.email} ${payload.password}`)
+        const user = await this.helper.getUserByEmail(payload.email)
+        const update = await this.prisma.employee.update({
+            where: {
+                id: user.id,
+            },
+            data: {
+                password: await this.helper.hashPass(payload.password)
+            }
+        })
+        if (!update) throw new ConflictException("Error Changing Password")
+        return { message: "Password changed successfully!" }
     }
 }

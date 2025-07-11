@@ -66,11 +66,12 @@ model UserAdvice {
 }
 
 model Question {
-  id         Int     @id @unique(map: "Questions_id_key")
-  question   String
-  is_flipped Boolean
-  domain     String
-  subdomain  String
+  id             Int              @id @unique(map: "Questions_id_key")
+  question       String
+  is_flipped     Boolean
+  domain         String
+  subdomain      String
+  interpretation Interpretation[]
 }
 
 model Batch_Record {
@@ -100,6 +101,7 @@ model Employee_Under_Batch {
   batch             Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
 
   @@unique([email, batch_id])
+  @@index([batch_id])
 }
 
 model Answer {
@@ -107,6 +109,8 @@ model Answer {
   answer      Json
   employee_id String
   employee    Employee_Under_Batch @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+
+  @@index([employee_id])
 }
 
 model Settings {
@@ -161,4 +165,19 @@ enum Frequency {
   WEEKLY
   EVERY_HOUR
   EVERY_MINUTE
+}
+
+enum ScoreBand {
+  HIGH
+  AVERAGE
+  BELOW_AVERAGE
+  LOW
+}
+
+model Interpretation {
+  id          String    @id @default(cuid())
+  question_id Int
+  question    Question  @relation(references: [id], fields: [question_id])
+  score_band  ScoreBand
+  content     String
 }
