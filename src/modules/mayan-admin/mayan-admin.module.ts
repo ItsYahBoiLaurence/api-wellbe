@@ -8,9 +8,10 @@ import { CronModule } from '../cron/cron.module';
 import { EmailerModule } from '../emailer/emailer.module';
 import { OpenaiModule } from '../openai/openai.module';
 import { ConfigModule } from '@nestjs/config';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [PrismaModule, HelperModule, UserModule, CronModule, HelperModule, EmailerModule, OpenaiModule, ConfigModule],
+  imports: [PrismaModule, HelperModule, UserModule, CronModule, HelperModule, EmailerModule, OpenaiModule, ConfigModule, AuthModule],
   providers: [MayanAdminService],
   controllers: [MayanAdminController]
 })

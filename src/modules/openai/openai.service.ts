@@ -43,7 +43,7 @@ export class OpenaiService {
                 },
                 {
                     "role": "user",
-                    "content": `Previos tips: ${advice}. Wellbeing scores: ${wellbeing} Using the previous tips and the wellbeing score, generate a holistic tip following the format. Make sure not to mention the wellbeing scores, just praise or motivate if it's high or low.`
+                    "content": `Previous tips: ${advice}. Wellbeing scores: ${wellbeing} Using the previous tips and the wellbeing score, generate a holistic tip following the format. Make sure not to mention the wellbeing scores, just praise or motivate if it's high or low. Return the result as an object in this format: {feedback, character, career, connectedness,contentment, quote}`
                 }],
             temperature: 0.9
         })

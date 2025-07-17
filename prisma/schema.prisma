@@ -181,3 +181,26 @@ model Interpretation {
   score_band  ScoreBand
   content     String
 }
+
+enum Domain {
+  CHARACTER
+  CAREER
+  CONNECTEDNESS
+  CONTENTMENT
+}
+
+enum DomainScoreband {
+  VERY_HIGH
+  ABOVE_AVERAGE
+  AVERAGE
+  BELOW_AVERAGE
+  VERY_LOW
+}
+
+model DomainInterpretation {
+  id               String          @id @default(cuid())
+  domain           Domain
+  score_band       DomainScoreband
+  insight          String
+  what_to_build_on String
+}

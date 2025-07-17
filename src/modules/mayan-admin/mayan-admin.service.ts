@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CompanyData, CompanyModel } from 'src/types/company';
 import { UserService } from '../user/user.service';
@@ -10,6 +10,8 @@ import { EmailerService } from '../emailer/emailer.service';
 import { AnswerLabel, Tally } from 'src/types/question-tally';
 import { RawAnswer } from 'src/types/answer';
 import { Question, RawAnswerItem, ResultItem } from 'src/types/mayan-admin';
+import { BadRequestError } from 'openai';
+import { AuthService } from '../auth/auth.service';
 
 @Injectable()
 export class MayanAdminService {
@@ -21,7 +23,8 @@ export class MayanAdminService {
         private readonly userService: UserService,
         private readonly helper: HelperService,
         private readonly config: ConfigService,
-        private readonly mail: EmailerService
+        private readonly mail: EmailerService,
+        private readonly auth: AuthService
     ) { }
 
     async getCompanyDetails(user_details: JwtPayload): Promise<CompanyData[]> {
@@ -294,4 +297,32 @@ export class MayanAdminService {
         };
     }
 
+    async loginSuperAdmin(payload: { email: string, password: string }) {
+        if (!payload || !payload.email || !payload.password) {
+            throw new BadRequestException("Invalid Payload");
+        }
+
+        const adminUser = await this.prisma.employee.findUnique({
+            where: {
+                email: payload.email,
+                role: "superadmin"
+            },
+            include: {
+                department: {
+                    select: {
+                        company: true
+                    }
+                }
+            }
+        })
+        if (!adminUser) throw new NotFoundException('User not found!')
+
+        const data = {
+            email: adminUser.email,
+            company: adminUser.department.company.name,
+            role: adminUser.role
+        }
+
+        return this.auth.signCreds(data)
+    }
 }

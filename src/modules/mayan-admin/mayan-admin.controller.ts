@@ -75,20 +75,9 @@ export class MayanAdminController {
         return this.service.generateData(user_data)
     }
 
-
-
-
-
-    // @Public()
-    // @Delete()
-    // deleteCompany(){
-    //     return this.
-    // }
-    // @Public()
-    // @Get('cuid')
-    // generateCUID() {
-    //     return this.service.generateCUIDData()
-    // }
-
-
+    @Public()
+    @Post('sa-auth')
+    saLogin(@Body() payload: { email: string, password: string }) {
+        return this.service.loginSuperAdmin(payload)
+    }
 }

@@ -66,4 +66,16 @@ export class AuthService {
 
         return user
     }
+
+    async signCreds(creds: { email: string, role: string, company: string }) {
+        const payload = {
+            sub: creds.email,
+            company: creds.company,
+            role: creds.role
+        }
+
+        const access_token = await this.jwtService.signAsync(payload)
+
+        return { access_token }
+    }
 }
