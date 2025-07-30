@@ -10,13 +10,14 @@ datasource db {
 }
 
 model Company {
-  id           Int            @id @default(autoincrement())
   name         String         @unique
   created_at   DateTime       @default(now())
   batch_record Batch_Record[]
   departments  Department[]
   ScatterData  ScatterData[]
   Settings     Settings?
+  //new column
+  id           String         @id @default(cuid()) @map("newId") // in the database it is named newId
 }
 
 model Department {
@@ -32,7 +33,6 @@ model Department {
 }
 
 model Employee {
-  id              Int          @id @default(autoincrement())
   first_name      String
   last_name       String
   email           String       @unique
@@ -43,6 +43,9 @@ model Employee {
   tips            Tips[]
   advices         UserAdvice[]
   wellbeing_score Wellbeing[]
+
+  //new column
+  id String @id @default(cuid()) @map("newId")
 }
 
 model Tips {
@@ -88,7 +91,6 @@ model Batch_Record {
 }
 
 model Employee_Under_Batch {
-  id                Int          @id @default(autoincrement())
   email             String
   question_bank     Json
   is_completed      Boolean      @default(false)
@@ -96,17 +98,19 @@ model Employee_Under_Batch {
   created_at        DateTime
   set_participation Json         @default("[false, false, false, false, false]")
   department_id     Int
-  Answer            Answer[]
   batch             Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+  Answer_new        Answer[]     @relation("NewRelation")
+  //new column
+  newId             String       @unique
 
   @@unique([email, batch_id])
 }
 
 model Answer {
-  id          Int                  @id @default(autoincrement())
-  answer      Json
-  employee_id Int
-  employee    Employee_Under_Batch @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+  id              Int                   @id @default(autoincrement())
+  answer          Json
+  new_employee_id String?
+  new_employee    Employee_Under_Batch? @relation("NewRelation", fields: [new_employee_id], references: [newId], onDelete: Cascade)
 }
 
 model Settings {

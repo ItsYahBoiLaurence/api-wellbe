@@ -5,12 +5,6 @@ node_modules/
 dist/
 build/
 
-# Prisma migrations (optional)
-prisma/migrations/
-prisma/asd
-prisma/asdx
-
-
 # Environment variables
 .env
 .env.*.local
