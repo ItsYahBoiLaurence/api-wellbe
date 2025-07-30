@@ -4,7 +4,7 @@ import cuid = require('cuid');
 const prisma = new PrismaClient()
 
 async function main() {
-    const eubs = await prisma.employee_Under_Batch.findMany()
+    // const eubs = await prisma.employee_Under_Batch.findMany()
 
     // for (const eub of eubs) {
     //     await prisma.answer.updateMany({
@@ -27,6 +27,20 @@ async function main() {
     //         }
     //     })
     // }
+
+    // const departments = await prisma.department.findMany()
+
+    // for (const department of departments) {
+    //     await prisma.employee_Under_Batch.updateMany({
+    //         where: {
+    //             department_id: department.idToRef
+    //         },
+    //         data: {
+    //             newDepartmentId: department.id
+    //         }
+    //     })
+    // }
+
 
     console.log('Completed!')
 }
