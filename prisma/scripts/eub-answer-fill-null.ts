@@ -1,28 +1,41 @@
-// import { PrismaClient } from "@prisma/client";
-// import cuid = require('cuid');
+import { PrismaClient } from "@prisma/client";
+import cuid = require('cuid');
 
-// const prisma = new PrismaClient()
+const prisma = new PrismaClient()
 
-// async function main() {
-//     const eubs = await prisma.employee_Under_Batch.findMany()
+async function main() {
+    const eubs = await prisma.employee_Under_Batch.findMany()
 
-//     for (const eub of eubs) {
-//         await prisma.answer.updateMany({
-//             where: {
-//                 employee_id: eub.id
-//             },
-//             data: {
-//                 new_employee_id: eub.newId
-//             }
-//         })
-//     }
-// }
+    // for (const eub of eubs) {
+    //     await prisma.answer.updateMany({
+    //         where: {
+    //             new_employee_id: eub.newId
+    //         },
+    //         data: {
+    //             employee_id: eub.id
+    //         }
+    //     })
+    // }
 
-// main()
-//     .catch((e) => {
-//         console.error('Migration failed:', e)
-//         process.exit(1)
-//     })
-//     .finally(async () => {
-//         await prisma.$disconnect()
-//     })
+    // for (const eub of eubs) {
+    //     await prisma.answer.updateMany({
+    //         where: {
+    //             employee_id: eub.id
+    //         },
+    //         data: {
+    //             new_employee_id: eub.newId
+    //         }
+    //     })
+    // }
+
+    console.log('Completed!')
+}
+
+main()
+    .catch((e) => {
+        console.error('Migration failed:', e)
+        process.exit(1)
+    })
+    .finally(async () => {
+        await prisma.$disconnect()
+    })
