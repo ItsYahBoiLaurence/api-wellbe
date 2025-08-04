@@ -7,3 +7,10 @@ export interface DomainStats {
     count: number;
 }
 
+export interface RawAnswer {
+    answer: SingleRawAnswer[]
+}
+
+export interface SingleRawAnswer {
+    [key: string]: number
+}

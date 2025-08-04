@@ -32,4 +32,9 @@ export class WellbeingController {
         return this.service.getComputedDomain(user, period)
     }
 
+    @Get('domain-insight')
+    getDomainInsight(@CurrentUser() user: JwtPayload, @Query('period') period: string) {
+        return this.service.getDomainInsight(user, period)
+    }
+
 }

@@ -5,6 +5,8 @@ import * as bcrypt from 'bcrypt'
 import { JwtPayload } from 'src/types/jwt-payload';
 import { AnswerModel } from 'src/types/answer';
 import { Exception } from 'handlebars';
+import * as cuid from 'cuid';
+
 
 @Injectable()
 export class HelperService {
@@ -400,4 +402,19 @@ export class HelperService {
 
         return newInbox
     }
+
+    async getQuestionById(id: number) {
+        const question = await this.prisma.question.findFirst({
+            where: {
+                id
+            },
+            omit: {
+                subdomain: true,
+                is_flipped: true,
+            }
+        })
+        if (!question) throw new NotFoundException("Question not Found!")
+        return question
+    }
+
 }

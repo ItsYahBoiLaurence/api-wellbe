@@ -9,17 +9,17 @@ export class InboxController {
     constructor(private readonly service: InboxService) { }
 
     @Get()
-    getInbox(@CurrentUser() user_info: JwtPayload, @Query('cursor') cursor: number) {
+    getInbox(@CurrentUser() user_info: JwtPayload, @Query('cursor') cursor: string) {
         return this.service.getInbox(user_info.sub, cursor)
     }
 
     @Get('singleMessage')
-    getSingleMessage(@Query('tag') tag: string, @Query('item_id', ParseIntPipe) id: number) {
+    getSingleMessage(@Query('tag') tag: string, @Query('item_id') id: string) {
         return this.service.getSingleMessage(tag, id)
     }
 
     @Patch(':id/read')
-    changeMessageStatus(@Param('id', ParseIntPipe) id: number) {
+    changeMessageStatus(@Param('id') id: string) {
         return this.service.updateMessage(id)
     }
 }

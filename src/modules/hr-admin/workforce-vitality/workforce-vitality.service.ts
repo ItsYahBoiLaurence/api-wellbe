@@ -80,7 +80,9 @@ export class WorkforceVitalityService {
 
     async getScatter(user_data: JwtPayload) {
         const { company } = user_data
+
         const user_company = await this.helper.getCompany(company)
+
         const scatter = await this.prisma.scatterData.findFirst({
             where: {
                 company_name: user_company.name
@@ -93,7 +95,9 @@ export class WorkforceVitalityService {
                 created_at: true
             }
         })
-        if (!scatter) throw new NotFoundException("Performance vs. Wellbeing Data not found!")
+
+        if (!scatter) throw new NotFoundException("Performance vs. Wellbeing Data not founds!")
+
         return scatter
     }
 }

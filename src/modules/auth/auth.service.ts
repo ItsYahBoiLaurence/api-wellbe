@@ -66,4 +66,26 @@ export class AuthService {
 
         return user
     }
+
+    async signCreds(creds: { email: string, role: string, company: string }) {
+        const payload = {
+            sub: creds.email,
+            company: creds.company,
+            role: creds.role
+        }
+
+        const access_token = await this.jwtService.signAsync(payload)
+
+        return { access_token }
+    }
+
+    async validateToken(token: { access_token: string }) {
+        try {
+            await this.jwtService.verifyAsync(token.access_token)
+            return { success: true, message: "Token is valid!" }
+        } catch (error) {
+            if (error.name == 'TokenExpiredError') return { success: false, message: "Expired Token" }
+            else return { success: false, message: "Invalid token" }
+        }
+    }
 }
