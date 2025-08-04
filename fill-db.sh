@@ -1,0 +1,1 @@
+npx ts-node prisma/scripts/$1
