@@ -47,21 +47,26 @@ model Employee {
 }
 
 model Tips {
-  id            Int      @id @default(autoincrement())
-  user          String
-  tip           String
-  created_at    DateTime
-  batch_created Int
-  user_email    Employee @relation(fields: [user], references: [email], onDelete: Cascade)
+  id         Int      @id @default(autoincrement())
+  user       String
+  tip        String
+  created_at DateTime
+  user_email Employee @relation(fields: [user], references: [email], onDelete: Cascade)
+
+  batch_created String       @map("newBatchCreated")
+  batch_record  Batch_Record @relation(fields: [batch_created], references: [id], onDelete: Cascade)
 }
 
 model UserAdvice {
-  id            Int      @id @default(autoincrement())
-  user          String
-  advice        String
-  created_at    DateTime
-  batch_created Int
-  user_email    Employee @relation(fields: [user], references: [email], onDelete: Cascade)
+  id         Int      @id @default(autoincrement())
+  user       String
+  advice     String
+  created_at DateTime
+  // batch_created Int
+  user_email Employee @relation(fields: [user], references: [email], onDelete: Cascade)
+
+  batch_created String       @map("newBatchCreated")
+  batch_record  Batch_Record @relation(fields: [batch_created], references: [id], onDelete: Cascade)
 
   @@unique([user, batch_created])
 }
@@ -75,17 +80,22 @@ model Question {
 }
 
 model Batch_Record {
-  id                 Int       @id @default(autoincrement())
-  created_at         DateTime  @default(now())
-  start_date         DateTime  @default(now())
-  end_date           DateTime
-  is_completed       Boolean   @default(false)
-  company_name       String
-  current_set_number Int       @default(1)
-  frequency          Frequency
-  company            Company   @relation(fields: [company_name], references: [name], onDelete: Cascade)
-  // employees_under_batch Employee_Under_Batch[]
-  // Wellbeing             Wellbeing[]
+  created_at            DateTime               @default(now())
+  start_date            DateTime               @default(now())
+  end_date              DateTime
+  is_completed          Boolean                @default(false)
+  company_name          String
+  current_set_number    Int                    @default(1)
+  frequency             Frequency
+  company               Company                @relation(fields: [company_name], references: [name], onDelete: Cascade)
+  employees_under_batch Employee_Under_Batch[]
+  Wellbeing             Wellbeing[]
+  userAdvice            UserAdvice[]
+  Tips                  Tips[]
+
+  id String @id @default(cuid()) @map("newId")
+
+  old_batch_id Int?
 }
 
 model Employee_Under_Batch {
@@ -93,13 +103,13 @@ model Employee_Under_Batch {
   email             String
   question_bank     Json
   is_completed      Boolean  @default(false)
-  batch_id          Int
   created_at        DateTime
   set_participation Json     @default("[false, false, false, false, false]")
-  // batch             Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
   Answer            Answer[]
+  department_id     String   @map("newDepartmentId")
 
-  department_id String @map("newDepartmentId")
+  batch_id String       @map("newBatchId")
+  batch    Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
 
   @@unique([email, batch_id])
 }
@@ -131,11 +141,13 @@ model Wellbeing {
   user_email      String
   created_at      DateTime
   wellbeing_score Json
-  batch_id        Int
-  // batch           Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+  // batch_id        Int
   department      String     @map("newDepartment")
   department_id   Department @relation(fields: [department], references: [id], onDelete: Cascade)
   user            Employee   @relation(fields: [user_email], references: [email], onDelete: Cascade)
+
+  batch_id String       @map("newBatchId")
+  batch    Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
 
   @@unique([user_email, batch_id])
 }

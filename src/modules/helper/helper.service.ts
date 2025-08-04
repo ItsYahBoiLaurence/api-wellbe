@@ -260,7 +260,7 @@ export class HelperService {
         return department_details
     }
 
-    async userCompletedTheBatch(email: string, batch_id: number) {
+    async userCompletedTheBatch(email: string, batch_id: string) {
 
         const payload = {
             email_batch_id: {
@@ -326,7 +326,7 @@ export class HelperService {
         return date
     }
 
-    async getBatchTips(batch_id: number, user: string) {
+    async getBatchTips(batch_id: string, user: string) {
 
         const tips_bank: string[] = []
 
