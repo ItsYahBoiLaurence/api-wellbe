@@ -72,11 +72,12 @@ model UserAdvice {
 }
 
 model Question {
-  id         Int     @id @unique(map: "Questions_id_key")
-  question   String
-  is_flipped Boolean
-  domain     String
-  subdomain  String
+  id             Int              @id @unique(map: "Questions_id_key")
+  question       String
+  is_flipped     Boolean
+  domain         String
+  subdomain      String
+  interpretation Interpretation[]
 }
 
 model Batch_Record {
@@ -107,11 +108,11 @@ model Employee_Under_Batch {
   set_participation Json     @default("[false, false, false, false, false]")
   Answer            Answer[]
   department_id     String   @map("newDepartmentId")
-
   batch_id String       @map("newBatchId")
   batch    Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
-
+  
   @@unique([email, batch_id])
+  @@index([batch_id])
 }
 
 model Answer {
@@ -119,6 +120,7 @@ model Answer {
   answer       Json
   employee_id  String                @map("new_employee_id")
   new_employee Employee_Under_Batch? @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+  @@index([employee_id])
 }
 
 model Settings {
@@ -141,19 +143,16 @@ model Wellbeing {
   user_email      String
   created_at      DateTime
   wellbeing_score Json
-  // batch_id        Int
   department      String     @map("newDepartment")
   department_id   Department @relation(fields: [department], references: [id], onDelete: Cascade)
   user            Employee   @relation(fields: [user_email], references: [email], onDelete: Cascade)
-
   batch_id String       @map("newBatchId")
   batch    Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
-
   @@unique([user_email, batch_id])
 }
 
 model ScatterData {
-  id           Int      @id @default(autoincrement())
+  id           String   @id @default(cuid())
   company_name String
   scatterData  Json
   created_at   DateTime
@@ -161,7 +160,7 @@ model ScatterData {
 }
 
 model Inbox {
-  id         Int      @id @default(autoincrement())
+  id         String   @id @default(cuid())
   subject    String
   receiver   String
   body       String
@@ -175,4 +174,42 @@ enum Frequency {
   WEEKLY
   EVERY_HOUR
   EVERY_MINUTE
+}
+
+enum ScoreBand {
+  HIGH
+  AVERAGE
+  BELOW_AVERAGE
+  LOW
+}
+
+model Interpretation {
+  id          String    @id @default(cuid())
+  question_id Int
+  question    Question  @relation(references: [id], fields: [question_id])
+  score_band  ScoreBand
+  content     String
+}
+
+enum Domain {
+  CHARACTER
+  CAREER
+  CONNECTEDNESS
+  CONTENTMENT
+}
+
+enum DomainScoreband {
+  VERY_HIGH
+  ABOVE_AVERAGE
+  AVERAGE
+  BELOW_AVERAGE
+  VERY_LOW
+}
+
+model DomainInterpretation {
+  id               String          @id @default(cuid())
+  domain           Domain
+  score_band       DomainScoreband
+  insight          String
+  what_to_build_on String
 }

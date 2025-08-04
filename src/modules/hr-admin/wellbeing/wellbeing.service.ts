@@ -1,14 +1,16 @@
 import { ConflictException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { JsonValue } from '@prisma/client/runtime/library';
+import { raw } from 'express';
 import { HelperService } from 'src/modules/helper/helper.service';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { DomainStats } from 'src/types/answer';
 import { JwtPayload } from 'src/types/jwt-payload';
-import { Score, WellbeingItem } from 'src/types/wellbeing';
+import { DomainWellbeing, OverallWellbeingScore, Score, WellbeingItem } from 'src/types/wellbeing';
 
 @Injectable()
 export class WellbeingService {
+
     constructor(private readonly helper: HelperService, private readonly prisma: PrismaService) { }
 
     async generateUserWellbeing(user: JwtPayload) {
@@ -165,14 +167,13 @@ export class WellbeingService {
             }
         })
 
-        const totals = wellbeing.reduce(
-            (acc, { wellbeing_score }) => {
-                acc.career += wellbeing_score.career
-                acc.character += wellbeing_score.character
-                acc.contentment += wellbeing_score.contentment
-                acc.connectedness += wellbeing_score.connectedness
-                return acc
-            },
+        const totals = wellbeing.reduce((acc, { wellbeing_score }) => {
+            acc.career += wellbeing_score.career
+            acc.character += wellbeing_score.character
+            acc.contentment += wellbeing_score.contentment
+            acc.connectedness += wellbeing_score.connectedness
+            return acc
+        },
             { career: 0, character: 0, contentment: 0, connectedness: 0 }
         )
         return this.getAverage(totals, employee_count)
@@ -301,4 +302,102 @@ export class WellbeingService {
             return { created_at, wellbeing }
         })
     }
-} 
+
+    async getDomainInsight(user_details: JwtPayload, period?: string) {
+
+        const insight = "Employees demonstrate exceptional self-belief, resilience, and openness to growth. They feel empowered to handle challenges and actively seek opportunities to improve. Continue offering stretch assignments and advanced growth opportunities. Encourage them to mentor peers and share stories of overcoming setbacks to inspire the wider team."
+
+        const company = await this.helper.getCompany(user_details.company)
+
+        const month = this.helper.getPeriod(period)
+
+        const filter = {
+            user: {
+                department: {
+                    company: {
+                        name: company.name
+                    }
+                }
+            },
+            created_at: {
+                gte: month
+            }
+        }
+
+        const raw_wellbeing = await this.prisma.wellbeing.findMany({
+            where: filter,
+            select: {
+                wellbeing_score: true
+            }
+        })
+
+        if (!raw_wellbeing) throw new NotFoundException("No wellbeing data!")
+
+        const wellbeingData = (raw_wellbeing as unknown) as OverallWellbeingScore[]
+
+        const postComputedData = wellbeingData.reduce((acc, { wellbeing_score }) => {
+            acc.character += wellbeing_score.character
+            acc.career += wellbeing_score.career
+            acc.connectedness += wellbeing_score.connectedness
+            acc.contentment += wellbeing_score.contentment
+            return acc
+        }, { character: 0, career: 0, connectedness: 0, contentment: 0 })
+
+        const result: DomainWellbeing[] = []
+
+        const domainNameMap = {
+            character: "CHARACTER",
+            career: "CAREER",
+            connectedness: "CONNECTEDNESS",
+            contentment: "CONTENTMENT"
+        }
+
+        for (const domain in postComputedData) {
+            const average = Math.floor(postComputedData[domain] / wellbeingData.length);
+            const score_band = this.getStanine(average) == "Very High" ? "VERY_HIGH"
+                : this.getStanine(average) == "Above Average" ? "ABOVE_AVERAGE"
+                    : this.getStanine(average) == "Average" ? "AVERAGE"
+                        : this.getStanine(average) == "Below Average" ? "BELOW_AVERAGE"
+                            : this.getStanine(average) == "Very Low" ? "VERY_LOW"
+                                : undefined
+
+            const domainName = domainNameMap[domain]
+
+            const domainInsight = await this.prisma.domainInterpretation.findFirst({
+                where: {
+                    domain: domainName,
+                    score_band
+                }
+            })
+
+            if (!domainInsight) throw new ConflictException("No Insight")
+
+            const data: DomainWellbeing = {
+                domain,
+                stanine_score: average,
+                stanine_label: this.getStanine(average),
+                insight: domainInsight?.insight,
+                to_do: domainInsight.what_to_build_on
+            };
+
+            result.push(data)
+            Logger.log(data)
+        }
+
+        return result
+    }
+
+    private getStanine(value: number) {
+        if (value >= 96) {
+            return "Very High"
+        } else if (value <= 95 && value >= 77) {
+            return "Above Average"
+        } else if (value <= 76 && value >= 23) {
+            return "Average"
+        } else if (value <= 22 && value >= 4) {
+            return "Below Average"
+        } else {
+            return "Very Low"
+        }
+    }
+}

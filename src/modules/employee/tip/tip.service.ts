@@ -66,7 +66,36 @@ export class TipService {
 
         if (!holistic_tip) throw new NotFoundException("Tip not found!")
 
-        return holistic_tip
+        const remarksMatch = holistic_tip.advice.match(/"([^"]+)"/);
+        const remarks = remarksMatch ? remarksMatch[1] : "";
+
+        const feedback = holistic_tip.advice.split(/-\s\*\*Character\*\*:/)[0].trim();
+
+        const sections: Record<string, string> = {};
+        const sectionPattern = /-\s\*\*(\w+)\*\*:\s(.*?)(?=\s-\s\*\*|\s"|\.$)/gs;
+
+        let match;
+        while ((match = sectionPattern.exec(holistic_tip.advice)) !== null) {
+            const key = match[1].toLowerCase();
+            const value = match[2].trim();
+            sections[key] = value;
+        }
+
+        const result = {
+            feedback,
+            ...sections,
+            remarks
+        };
+
+        const insight = JSON.parse(result.feedback)
+        const { advice, ...rest } = holistic_tip
+
+        const tip = {
+            ...rest,
+            insight
+        }
+
+        return tip
     }
 
     async generateHolisticTip(user_details: JwtPayload) {
