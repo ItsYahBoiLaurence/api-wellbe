@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Public } from 'src/common/decorators/public.decorators';
 import { CompanyData, CompanyModel } from 'src/types/company';
 import { User } from 'src/types/user';
+import { AuthService } from '../auth/auth.service';
 
 
 
@@ -18,6 +19,7 @@ import { User } from 'src/types/user';
 export class MayanAdminController {
     constructor(
         private readonly service: MayanAdminService,
+        private readonly authService: AuthService
     ) { }
 
     @Public()
@@ -79,5 +81,19 @@ export class MayanAdminController {
     @Post('sa-auth')
     saLogin(@Body() payload: { email: string, password: string }) {
         return this.service.loginSuperAdmin(payload)
+    }
+
+    @Public()
+    @Post('validate-token')
+    validateToken(@Body() token: { access_token: string }) {
+        return this.authService.validateToken(token)
+    }
+
+
+    @Public()
+    @Post('generate-pass')
+    generateHashPass(@Body() data: { password: string }) {
+        // return data
+        return this.service.generateHashPass(data)
     }
 }

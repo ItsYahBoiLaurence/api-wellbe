@@ -1,4 +1,3 @@
-
 export interface Score {
     career: number;
     character: number;
@@ -13,7 +12,6 @@ export interface WellbeingItem {
 export interface OverallWellbeingScore {
     wellbeing_score: Score
 }
-
 
 export interface DomainWellbeing {
     domain: string

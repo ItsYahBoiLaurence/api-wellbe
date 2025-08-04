@@ -325,4 +325,8 @@ export class MayanAdminService {
 
         return this.auth.signCreds(data)
     }
+
+    async generateHashPass(data: { password: string }) {
+        return this.helper.hashPass(data.password)
+    }
 }

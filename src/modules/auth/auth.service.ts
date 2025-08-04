@@ -78,4 +78,14 @@ export class AuthService {
 
         return { access_token }
     }
+
+    async validateToken(token: { access_token: string }) {
+        try {
+            await this.jwtService.verifyAsync(token.access_token)
+            return { success: true, message: "Token is valid!" }
+        } catch (error) {
+            if (error.name == 'TokenExpiredError') return { success: false, message: "Expired Token" }
+            else return { success: false, message: "Invalid token" }
+        }
+    }
 }
