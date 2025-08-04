@@ -100,26 +100,27 @@ model Batch_Record {
 }
 
 model Employee_Under_Batch {
-  id                String   @id @default(cuid()) @map("newId")
+  id                String       @id @default(cuid()) @map("newId")
   email             String
   question_bank     Json
-  is_completed      Boolean  @default(false)
+  is_completed      Boolean      @default(false)
   created_at        DateTime
-  set_participation Json     @default("[false, false, false, false, false]")
+  set_participation Json         @default("[false, false, false, false, false]")
   Answer            Answer[]
-  department_id     String   @map("newDepartmentId")
-  batch_id String       @map("newBatchId")
-  batch    Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
-  
+  department_id     String       @map("newDepartmentId")
+  batch_id          String       @map("newBatchId")
+  batch             Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+
   @@unique([email, batch_id])
   @@index([batch_id])
 }
 
 model Answer {
-  id           Int                   @id @default(autoincrement())
-  answer       Json
-  employee_id  String                @map("new_employee_id")
-  new_employee Employee_Under_Batch? @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+  id          Int                   @id @default(autoincrement())
+  answer      Json
+  employee_id String                @map("new_employee_id")
+  employee    Employee_Under_Batch? @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+
   @@index([employee_id])
 }
 
@@ -139,15 +140,16 @@ model Advice {
 }
 
 model Wellbeing {
-  id              Int        @id @default(autoincrement())
+  id              Int          @id @default(autoincrement())
   user_email      String
   created_at      DateTime
   wellbeing_score Json
-  department      String     @map("newDepartment")
-  department_id   Department @relation(fields: [department], references: [id], onDelete: Cascade)
-  user            Employee   @relation(fields: [user_email], references: [email], onDelete: Cascade)
-  batch_id String       @map("newBatchId")
-  batch    Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+  department      String       @map("newDepartment")
+  department_id   Department   @relation(fields: [department], references: [id], onDelete: Cascade)
+  user            Employee     @relation(fields: [user_email], references: [email], onDelete: Cascade)
+  batch_id        String       @map("newBatchId")
+  batch           Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+
   @@unique([user_email, batch_id])
 }
 
