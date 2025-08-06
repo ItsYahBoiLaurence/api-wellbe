@@ -1,7 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
-import { TipController } from '../tip/tip.controller';
-import { BadRequestError } from 'openai';
 
 @Injectable()
 export class InboxService {

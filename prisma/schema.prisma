@@ -47,7 +47,6 @@ model Employee {
 }
 
 model Tips {
-  id         Int      @id @default(autoincrement())
   user       String
   tip        String
   created_at DateTime
@@ -55,18 +54,20 @@ model Tips {
 
   batch_created String       @map("newBatchCreated")
   batch_record  Batch_Record @relation(fields: [batch_created], references: [id], onDelete: Cascade)
+
+  id String @id @default(cuid()) @map("newId")
 }
 
 model UserAdvice {
-  id         Int      @id @default(autoincrement())
   user       String
   advice     String
   created_at DateTime
-  // batch_created Int
   user_email Employee @relation(fields: [user], references: [email], onDelete: Cascade)
 
   batch_created String       @map("newBatchCreated")
   batch_record  Batch_Record @relation(fields: [batch_created], references: [id], onDelete: Cascade)
+
+  id String @id @default(cuid()) @map("newId")
 
   @@unique([user, batch_created])
 }
@@ -116,10 +117,11 @@ model Employee_Under_Batch {
 }
 
 model Answer {
-  id          Int                   @id @default(autoincrement())
   answer      Json
   employee_id String                @map("new_employee_id")
   employee    Employee_Under_Batch? @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+
+  id String @id @default(cuid()) @map("newId")
 
   @@index([employee_id])
 }
@@ -140,7 +142,6 @@ model Advice {
 }
 
 model Wellbeing {
-  id              Int          @id @default(autoincrement())
   user_email      String
   created_at      DateTime
   wellbeing_score Json
@@ -150,25 +151,28 @@ model Wellbeing {
   batch_id        String       @map("newBatchId")
   batch           Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
 
+  id String @id @default(cuid()) @map("newId")
+
   @@unique([user_email, batch_id])
 }
 
 model ScatterData {
-  id           String   @id @default(cuid())
   company_name String
   scatterData  Json
   created_at   DateTime
   company      Company  @relation(fields: [company_name], references: [name], onDelete: Cascade)
+  id           String   @id @default(cuid()) @map("newId")
 }
 
 model Inbox {
-  id         String   @id @default(cuid())
   subject    String
   receiver   String
   body       String
   created_at DateTime
   opened     Boolean  @default(false)
   tag        String
+
+  id String @id @default(cuid()) @map("newId")
 }
 
 enum Frequency {

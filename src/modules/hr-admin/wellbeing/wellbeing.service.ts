@@ -29,7 +29,6 @@ export class WellbeingService {
                 }
             })
 
-
             const user_batch_data = await this.prisma.employee_Under_Batch.findFirst({
                 where: {
                     email: sub,
@@ -67,6 +66,7 @@ export class WellbeingService {
 
             return { message: "Successful wellbeing score generation!" }
         } catch (error) {
+            Logger.log(error, "ERROR LOG IN WELLBEING")
             if (error.code === 'P2002') throw new ConflictException("Wellbeing already generated!")
         }
     }
@@ -304,9 +304,6 @@ export class WellbeingService {
     }
 
     async getDomainInsight(user_details: JwtPayload, period?: string) {
-
-        const insight = "Employees demonstrate exceptional self-belief, resilience, and openness to growth. They feel empowered to handle challenges and actively seek opportunities to improve. Continue offering stretch assignments and advanced growth opportunities. Encourage them to mentor peers and share stories of overcoming setbacks to inspire the wider team."
-
         const company = await this.helper.getCompany(user_details.company)
 
         const month = this.helper.getPeriod(period)
@@ -331,7 +328,9 @@ export class WellbeingService {
             }
         })
 
-        if (!raw_wellbeing) throw new NotFoundException("No wellbeing data!")
+        Logger.log(raw_wellbeing, "THIS LOG")
+
+        if (!raw_wellbeing || raw_wellbeing.length == 0) throw new NotFoundException("No wellbeing data!")
 
         const wellbeingData = (raw_wellbeing as unknown) as OverallWellbeingScore[]
 
@@ -381,9 +380,7 @@ export class WellbeingService {
             };
 
             result.push(data)
-            Logger.log(data)
         }
-
         return result
     }
 
