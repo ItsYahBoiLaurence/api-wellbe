@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Logger, NotFoundException, Post, Query, } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Logger, NotFoundException, Post, Query, UploadedFile, } from '@nestjs/common';
 import { MayanAdminService } from './mayan-admin.service';
 import { CronService } from '../cron/cron.service';
 import { EmailerService } from '../emailer/emailer.service';
@@ -12,6 +12,9 @@ import { Public } from 'src/common/decorators/public.decorators';
 import { CompanyData, CompanyModel } from 'src/types/company';
 import { User } from 'src/types/user';
 import { AuthService } from '../auth/auth.service';
+import { ResendMailerService } from '../resend-mailer/resend-mailer.service';
+import { EmailData } from 'src/types/resend';
+import { InviteData } from 'src/types/invite';
 
 
 
@@ -19,7 +22,8 @@ import { AuthService } from '../auth/auth.service';
 export class MayanAdminController {
     constructor(
         private readonly service: MayanAdminService,
-        private readonly authService: AuthService
+        private readonly authService: AuthService,
+        private readonly resendMailer: ResendMailerService
     ) { }
 
     @Public()
@@ -93,7 +97,31 @@ export class MayanAdminController {
     @Public()
     @Post('generate-pass')
     generateHashPass(@Body() data: { password: string }) {
-        // return data
         return this.service.generateHashPass(data)
+    }
+
+    // @Public()
+    @Post("sendInvite")
+    sendEmail(@CurrentUser() user_data: JwtPayload, @Body() inviteData: InviteData) {
+        return this.resendMailer.sendSingleInvite(user_data, inviteData)
+    }
+
+    @Public()
+    @Post("send-bulk-email")
+    sendBulk(@CurrentUser() user_details: JwtPayload, @UploadedFile() file: Express.Multer.File) {
+        if (!file) throw new BadRequestException("Missing File!")
+        return this.resendMailer.sendBulkEmail(user_details, file.buffer)
+    }
+
+    @Public()
+    @Get("generate-new-wellbe")
+    generateSingleWellbeingData() {
+        return this.service.generateSingleWellbeing()
+    }
+
+    @Public()
+    @Get("generate-company-wellbeing")
+    generateCompanyWellbeingData() {
+        return this.service.generateCompanyWellbeing()
     }
 }

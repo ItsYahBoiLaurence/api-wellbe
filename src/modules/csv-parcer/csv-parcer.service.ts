@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import neatCsv from 'neat-csv';
+import { InviteItem } from 'src/types/invite';
 
 @Injectable()
 export class CsvParcerService {

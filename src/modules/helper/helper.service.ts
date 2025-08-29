@@ -6,6 +6,7 @@ import { JwtPayload } from 'src/types/jwt-payload';
 import { AnswerModel } from 'src/types/answer';
 import { Exception } from 'handlebars';
 import * as cuid from 'cuid';
+import { resolve } from 'path';
 
 
 @Injectable()

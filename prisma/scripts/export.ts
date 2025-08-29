@@ -6,7 +6,7 @@ import { writeFileSync } from "fs";
 const prisma = new PrismaClient();
 
 interface RawAnswerModel {
-    id: number;
+    id: string;
     answer: Record<string, number>[];
     employee_id: string;
 }
@@ -34,45 +34,45 @@ function transformAndGroupData(rawAnswers: RawAnswerModel[]): TransformedUserDat
 }
 
 async function main() {
-    // try {
-    //     const latestBatch = await prisma.batch_Record.findFirst({
-    //         where: {
-    //             company_name: "Yellow Cab"
-    //         },
-    //         orderBy: {
-    //             created_at: 'desc'
-    //         },
-    //         select: {
-    //             id: true
-    //         }
-    //     });
+    try {
+        const latestBatch = await prisma.batch_Record.findFirst({
+            where: {
+                company_name: "Yellow Cab"
+            },
+            orderBy: {
+                created_at: 'desc'
+            },
+            select: {
+                id: true
+            }
+        });
 
-    //     if (!latestBatch) {
-    //         throw new NotFoundException("No batch found");
-    //     }
+        if (!latestBatch) {
+            throw new NotFoundException("No batch found");
+        }
 
-    //     const rawAnswers = await prisma.answer.findMany({
-    //         where: {
-    //             employee: {
-    //                 batch_id: latestBatch.id,
-    //                 is_completed: true
-    //             }
-    //         },
-    //         select: {
-    //             id: true,
-    //             answer: true,
-    //             employee_id: true
-    //         }
-    //     });
-    //     const transformedData = transformAndGroupData(rawAnswers as RawAnswerModel[]);
-    //     const jsonData = JSON.stringify(transformedData, null, 2)
-    //     writeFileSync('answers.json', jsonData)
-    //     Logger.log('Data exported successfully to answers.json');
+        const rawAnswers = await prisma.answer.findMany({
+            where: {
+                employee: {
+                    batch_id: latestBatch.id,
+                    is_completed: true
+                }
+            },
+            select: {
+                id: true,
+                answer: true,
+                employee_id: true
+            }
+        });
+        const transformedData = transformAndGroupData(rawAnswers as RawAnswerModel[]);
+        const jsonData = JSON.stringify(transformedData, null, 2)
+        writeFileSync('answers.json', jsonData)
+        Logger.log('Data exported successfully to answers.json');
 
-    // } catch (error) {
-    //     Logger.error('Error in main function:', error);
-    //     throw error;
-    // }
+    } catch (error) {
+        Logger.error('Error in main function:', error);
+        throw error;
+    }
     const eub = await prisma.employee_Under_Batch.findMany({
         where: {
             batch_id: "cmdpnvtpd0004xi0che9b2qb5"

@@ -91,7 +91,6 @@ export class UserService {
         const user = await this.helper.getUserByEmail(email)
         const baseUrl = this.config.get<string>("INVITE_LINK")
         const link = `${baseUrl}/change-password?data=${btoa(user.email)}`
-        Logger.log(link)
         return this.emailer.changePasswordEmail(user.first_name, link, user.email)
     }
 

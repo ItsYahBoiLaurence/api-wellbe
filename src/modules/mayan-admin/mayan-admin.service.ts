@@ -4,14 +4,13 @@ import { CompanyData, CompanyModel } from 'src/types/company';
 import { UserService } from '../user/user.service';
 import { HelperService } from '../helper/helper.service';
 import { JwtPayload } from 'src/types/jwt-payload';
-import { User } from 'src/types/user';
 import { ConfigService } from '@nestjs/config';
 import { EmailerService } from '../emailer/emailer.service';
 import { AnswerLabel, Tally } from 'src/types/question-tally';
-import { RawAnswer } from 'src/types/answer';
+import { CompanyAnswerModel, NewAnswerModel } from 'src/types/answer';
 import { Question, RawAnswerItem, ResultItem } from 'src/types/mayan-admin';
-import { BadRequestError } from 'openai';
 import { AuthService } from '../auth/auth.service';
+import { Score } from 'src/types/wellbeing';
 
 @Injectable()
 export class MayanAdminService {
@@ -20,7 +19,6 @@ export class MayanAdminService {
 
     constructor(
         private readonly prisma: PrismaService,
-        private readonly userService: UserService,
         private readonly helper: HelperService,
         private readonly config: ConfigService,
         private readonly mail: EmailerService,
@@ -328,5 +326,132 @@ export class MayanAdminService {
 
     async generateHashPass(data: { password: string }) {
         return this.helper.hashPass(data.password)
+    }
+
+    async generateSingleWellbeing() {
+        const email = "cristina.libuton@yellowcabpizza.com"
+
+        const eub = await this.prisma.employee_Under_Batch.findFirst({
+            where: { email },
+            orderBy: {
+                created_at: 'desc'
+            }
+        })
+
+        if (!eub) {
+            throw new NotFoundException("Employee Under Batch not found!")
+        }
+
+        console.log(eub)
+
+        const answers = await this.prisma.answer.findMany({
+            where: {
+                employee_id: eub.id
+            }
+        }) as NewAnswerModel[]
+
+        if (answers.length === 0) {
+            throw new NotFoundException("No answers found for this employee!")
+        }
+
+        const flatMappedAnswers = answers.flatMap(answerRecord => answerRecord.answer)
+
+        const domainScores: Score = {
+            character: 0,
+            career: 0,
+            connectedness: 0,
+            contentment: 0
+        };
+
+        const categoryMap: Record<string, keyof Score> = {
+            '1': 'character',
+            '2': 'career',
+            '3': 'contentment',
+            '4': 'connectedness'
+        };
+
+        flatMappedAnswers.forEach((answerData) => {
+            const [[key, value]] = Object.entries(answerData)
+            const category = key.charAt(0)
+            const domain = categoryMap[category]
+            if (domain) domainScores[domain] += value
+        })
+
+        return domainScores
+    }
+
+    async generateCompanyWellbeing() {
+
+        const latestBatch = await this.prisma.batch_Record.findFirst({
+            where: {
+                company_name: "Yellow Cab"
+            },
+            orderBy: {
+                created_at: 'desc'
+            },
+            select: {
+                id: true
+            }
+        });
+
+        if (!latestBatch) throw new NotFoundException("No Batch Available!")
+
+        const [raw_answers, finishedEubCount] = await Promise.all([
+            await this.prisma.answer.findMany({
+                where: {
+                    employee: {
+                        batch_id: latestBatch.id,
+                        is_completed: true
+                    }
+                },
+                select: {
+                    answer: true,
+                    employee_id: true
+                }
+            }) as CompanyAnswerModel[],
+            this.prisma.employee_Under_Batch.count({
+                where: {
+                    batch_id: latestBatch.id,
+                    is_completed: true
+                }
+            })
+
+        ])
+
+        if (raw_answers.length === 0) throw new ConflictException("No answer data!")
+        if (finishedEubCount === 0) throw new ConflictException("No user completed the batch!")
+
+
+        const totalWellbeing = {
+            character: 0,
+            career: 0,
+            connectedness: 0,
+            contentment: 0
+        }
+
+        const categoryMap: Record<string, keyof Score> = {
+            '1': 'character',
+            '2': 'career',
+            '3': 'contentment',
+            '4': 'connectedness'
+        };
+
+        for (const { answer } of raw_answers) {
+            for (const singleAns of answer) {
+                const [[key, value]] = Object.entries(singleAns)
+                const category = key.charAt(0)
+                const domain = categoryMap[category]
+                if (domain) totalWellbeing[domain] += value
+            }
+        }
+
+        const averageDomainScore = {
+            character: Math.floor(totalWellbeing.character / finishedEubCount),
+            career: Math.floor(totalWellbeing.career / finishedEubCount),
+            connectedness: Math.floor(totalWellbeing.connectedness / finishedEubCount),
+            contentment: Math.floor(totalWellbeing.contentment / finishedEubCount)
+        }
+
+        return averageDomainScore
     }
 }
