@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, Logger, NotFoundException, Post, Query, UploadedFile, } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Logger, NotFoundException, Param, Post, Query, UploadedFile, } from '@nestjs/common';
 import { MayanAdminService } from './mayan-admin.service';
 import { CronService } from '../cron/cron.service';
 import { EmailerService } from '../emailer/emailer.service';
@@ -119,9 +119,8 @@ export class MayanAdminController {
         return this.service.generateSingleWellbeing()
     }
 
-    @Public()
     @Get("generate-company-wellbeing")
-    generateCompanyWellbeingData() {
-        return this.service.generateCompanyWellbeing()
+    generateCompanyWellbeingData(@CurrentUser() user_data: JwtPayload, @Query('period') period?: string) {
+        return this.service.generateNewCompanyWellbeing(user_data, period)
     }
 }

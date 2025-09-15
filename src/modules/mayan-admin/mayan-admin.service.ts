@@ -10,7 +10,7 @@ import { AnswerLabel, Tally } from 'src/types/question-tally';
 import { CompanyAnswerModel, NewAnswerModel } from 'src/types/answer';
 import { Question, RawAnswerItem, ResultItem } from 'src/types/mayan-admin';
 import { AuthService } from '../auth/auth.service';
-import { Score } from 'src/types/wellbeing';
+import { OverallWellbeingScore, Score } from 'src/types/wellbeing';
 
 @Injectable()
 export class MayanAdminService {
@@ -329,6 +329,7 @@ export class MayanAdminService {
     }
 
     async generateSingleWellbeing() {
+
         const email = "cristina.libuton@yellowcabpizza.com"
 
         const eub = await this.prisma.employee_Under_Batch.findFirst({
@@ -341,8 +342,6 @@ export class MayanAdminService {
         if (!eub) {
             throw new NotFoundException("Employee Under Batch not found!")
         }
-
-        console.log(eub)
 
         const answers = await this.prisma.answer.findMany({
             where: {
@@ -380,78 +379,60 @@ export class MayanAdminService {
         return domainScores
     }
 
-    async generateCompanyWellbeing() {
+    async generateNewCompanyWellbeing(user_payload: JwtPayload, period?: string) {
+        const { company } = user_payload
 
-        const latestBatch = await this.prisma.batch_Record.findFirst({
+        console.log(period)
+        const user_company = await this.helper.getCompany(company)
+
+        const month = this.helper.getPeriod(period)
+
+        const raw_wellbeing = await this.prisma.wellbeing.findMany({
             where: {
-                company_name: "Yellow Cab"
-            },
-            orderBy: {
-                created_at: 'desc'
-            },
-            select: {
-                id: true
-            }
-        });
-
-        if (!latestBatch) throw new NotFoundException("No Batch Available!")
-
-        const [raw_answers, finishedEubCount] = await Promise.all([
-            await this.prisma.answer.findMany({
-                where: {
-                    employee: {
-                        batch_id: latestBatch.id,
-                        is_completed: true
+                user: {
+                    department: {
+                        company: {
+                            name: user_company.name
+                        }
                     }
                 },
-                select: {
-                    answer: true,
-                    employee_id: true
+                created_at: {
+                    gte: month
                 }
-            }) as CompanyAnswerModel[],
-            this.prisma.employee_Under_Batch.count({
-                where: {
-                    batch_id: latestBatch.id,
-                    is_completed: true
-                }
-            })
+            },
+            select: {
+                wellbeing_score: true
+            }
+        }) as OverallWellbeingScore[]
 
-        ])
-
-        if (raw_answers.length === 0) throw new ConflictException("No answer data!")
-        if (finishedEubCount === 0) throw new ConflictException("No user completed the batch!")
-
-
-        const totalWellbeing = {
+        const wellbeValue: Score = {
             character: 0,
             career: 0,
             connectedness: 0,
             contentment: 0
         }
 
-        const categoryMap: Record<string, keyof Score> = {
-            '1': 'character',
-            '2': 'career',
-            '3': 'contentment',
-            '4': 'connectedness'
-        };
-
-        for (const { answer } of raw_answers) {
-            for (const singleAns of answer) {
-                const [[key, value]] = Object.entries(singleAns)
-                const category = key.charAt(0)
-                const domain = categoryMap[category]
-                if (domain) totalWellbeing[domain] += value
-            }
+        for (const wellbe of raw_wellbeing) {
+            wellbeValue.character += wellbe.wellbeing_score.character
+            wellbeValue.career += wellbe.wellbeing_score.career
+            wellbeValue.connectedness += wellbe.wellbeing_score.connectedness
+            wellbeValue.contentment += wellbe.wellbeing_score.contentment
         }
 
-        const averageDomainScore = {
-            character: Math.floor(totalWellbeing.character / finishedEubCount),
-            career: Math.floor(totalWellbeing.career / finishedEubCount),
-            connectedness: Math.floor(totalWellbeing.connectedness / finishedEubCount),
-            contentment: Math.floor(totalWellbeing.contentment / finishedEubCount)
+        const averageWellbeing: Score = {
+            character: this.average(wellbeValue.character, raw_wellbeing.length),
+            career: this.average(wellbeValue.career, raw_wellbeing.length),
+            connectedness: this.average(wellbeValue.connectedness, raw_wellbeing.length),
+            contentment: this.average(wellbeValue.contentment, raw_wellbeing.length)
         }
+        return averageWellbeing
+    }
 
-        return averageDomainScore
+    private compute(rawScore: number, maxScore: number) {
+        return Math.floor((rawScore / (maxScore * 4)) * 100)
+    }
+
+    private average(score: number, eub_count: number) {
+        return Math.floor(score / eub_count)
     }
 }

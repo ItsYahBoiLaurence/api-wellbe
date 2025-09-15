@@ -4,17 +4,29 @@ import { JsonValue } from '@prisma/client/runtime/library';
 import { raw } from 'express';
 import { HelperService } from 'src/modules/helper/helper.service';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
-import { DomainStats } from 'src/types/answer';
+import { DomainStats, NewAnswerModel } from 'src/types/answer';
 import { JwtPayload } from 'src/types/jwt-payload';
-import { DomainWellbeing, OverallWellbeingScore, Score, WellbeingItem } from 'src/types/wellbeing';
+import { DomainWellbeing, OverallWellbeingScore, Score, WellbeingItem, WellbeingRawScore } from 'src/types/wellbeing';
 
 @Injectable()
 export class WellbeingService {
+    private logger = new Logger(WellbeingService.name)
 
     constructor(private readonly helper: HelperService, private readonly prisma: PrismaService) { }
 
-    async generateUserWellbeing(user: JwtPayload) {
+    private compute(rawScore: number, domain: string) {
 
+        const maxScore = {
+            character: 28,
+            career: 28,
+            contentment: 24,
+            connectedness: 20
+        }
+
+        return Math.floor((rawScore / (maxScore[domain]) * 100))
+    }
+
+    async generateUserWellbeing(user: JwtPayload) {
         try {
             const start = new Date()
             start.setHours(start.getHours() + 8)
@@ -46,11 +58,65 @@ export class WellbeingService {
                 }, select: {
                     answer: true
                 }
+            }) as NewAnswerModel[]
+
+            if (user_answers.length === 0) {
+                throw new NotFoundException("No answers found for this employee!")
+            }
+
+            const flatMappedAnswers = user_answers.flatMap(answerRecord => answerRecord.answer)
+
+            const domainScores: Score = {
+                character: 0,
+                career: 0,
+                connectedness: 0,
+                contentment: 0
+            };
+
+            const categoryMap: Record<string, keyof Score> = {
+                '1': 'character',
+                '2': 'career',
+                '3': 'contentment',
+                '4': 'connectedness'
+            };
+
+            flatMappedAnswers.forEach((answerData) => {
+                const [[key, value]] = Object.entries(answerData)
+                const category = key.charAt(0)
+                const domain = categoryMap[category]
+                if (domain) domainScores[domain] += value
             })
 
-            if (!user_answers) throw new NotFoundException("User has no Answer!")
 
-            const wellbeing_score = this.compute_wellbeing(user_answers);
+            const [maxCharacterScore, maxCareerScore, maxConnectednessScore, maxContentmentScore] = await Promise.all([
+                this.prisma.question.count({
+                    where: {
+                        domain: 'character'
+                    }
+                }),
+                this.prisma.question.count({
+                    where: {
+                        domain: 'career'
+                    }
+                }),
+                this.prisma.question.count({
+                    where: {
+                        domain: 'connectedness'
+                    }
+                }),
+                this.prisma.question.count({
+                    where: {
+                        domain: 'contentment'
+                    }
+                })
+            ])
+
+            const wellbeing_score = {
+                character: domainScores.character,
+                career: domainScores.career,
+                connectedness: domainScores.connectedness,
+                contentment: domainScores.contentment,
+            }
 
             const wellbeing = await this.prisma.wellbeing.create({
                 data: {
@@ -75,7 +141,6 @@ export class WellbeingService {
 
         const { sub } = user_details
 
-        //should also filter by batch_id
         const user = await this.helper.getUserByEmail(sub)
 
         const score = await this.prisma.wellbeing.findFirst({
@@ -90,44 +155,6 @@ export class WellbeingService {
         if (!score) throw new NotFoundException("Score not found!")
 
         return score.wellbeing_score
-    }
-
-    private compute_wellbeing(user_answers: { answer: JsonValue }[]) {
-        const domains: Record<string, DomainStats> = {
-            character: { sum: 0, count: 0 },
-            career: { sum: 0, count: 0 },
-            connectedness: { sum: 0, count: 0 },
-            contentment: { sum: 0, count: 0 },
-        };
-
-        user_answers.forEach(({ answer }) => {
-            // Inline loop over each answer array—still overall O(N)
-            for (const qa of answer as Record<string, number>[]) {
-                const key = Object.keys(qa)[0];
-                const val = qa[key];
-                const id = +key;
-
-                // Determine domain in one conditional tree
-                let bucket: DomainStats;
-                if (id < 200) bucket = domains.character;
-                else if (id < 300) bucket = domains.career;
-                else if (id < 400) bucket = domains.connectedness;
-                else bucket = domains.contentment;
-
-                bucket.sum += val;
-                bucket.count += 1;
-            }
-        });
-
-        // Compute percentage scores (truncated) in one go
-        const result = Object.fromEntries(
-            Object.entries(domains).map(([domain, { sum, count }]) => {
-                const pct = count > 0 ? Math.floor((sum / (count * 4)) * 100) : 0;
-                return [domain, pct];
-            })
-        ) as Record<string, number>;
-
-        return result
     }
 
     async getCompanyWellbeing(user_details: JwtPayload, period?: string) {
@@ -236,13 +263,13 @@ export class WellbeingService {
         const contentment = Math.floor(data.contentment / count)
         const connectedness = Math.floor(data.connectedness / count)
 
-        const wellbe = Math.floor((career + character + contentment + connectedness) / 4)
+        const wellbe = Math.floor((career + character + contentment + connectedness))
 
         return {
-            career,
-            character,
-            contentment,
-            connectedness,
+            career: this.compute(career, 'career'),
+            character: this.compute(character, 'character'),
+            contentment: this.compute(contentment, 'contentment'),
+            connectedness: this.compute(connectedness, 'connectedness'),
             wellbe
         }
     }
@@ -260,7 +287,7 @@ export class WellbeingService {
                 is_completed: true
             },
             orderBy: {
-                created_at: 'desc'
+                created_at: 'asc'
             },
             take: 12,
             select: {
@@ -273,9 +300,11 @@ export class WellbeingService {
             }
         })
 
-        const sortedBatch = batch.reverse()
+        // const batch = (batch_record as unknown) as WellbeingRawScore[]
 
-        return sortedBatch.map(({ created_at, Wellbeing }) => {
+        // this.logger.log(batch)
+
+        return batch.map(({ created_at, Wellbeing }) => {
             if (Wellbeing.length === 0) {
                 return { created_at, wellbeing: null }
             }
@@ -296,10 +325,9 @@ export class WellbeingService {
                 (sum, key) => sum + average_Wellbeing[key],
                 0
             );
-
-            const wellbeing = Math.floor(sumOfAverages / keys.length);
-
-            return { created_at, wellbeing }
+            const wellbeing = Math.floor(sumOfAverages);
+            const data = { created_at, wellbeing }
+            return data
         })
     }
 
@@ -326,15 +354,11 @@ export class WellbeingService {
             select: {
                 wellbeing_score: true
             }
-        })
-
-        Logger.log(raw_wellbeing, "THIS LOG")
+        }) as OverallWellbeingScore[]
 
         if (!raw_wellbeing || raw_wellbeing.length == 0) throw new NotFoundException("No wellbeing data!")
 
-        const wellbeingData = (raw_wellbeing as unknown) as OverallWellbeingScore[]
-
-        const postComputedData = wellbeingData.reduce((acc, { wellbeing_score }) => {
+        const postComputedData = raw_wellbeing.reduce((acc, { wellbeing_score }) => {
             acc.character += wellbeing_score.character
             acc.career += wellbeing_score.career
             acc.connectedness += wellbeing_score.connectedness
@@ -352,12 +376,12 @@ export class WellbeingService {
         }
 
         for (const domain in postComputedData) {
-            const average = Math.floor(postComputedData[domain] / wellbeingData.length);
-            const score_band = this.getStanine(average) == "Very High" ? "VERY_HIGH"
-                : this.getStanine(average) == "Above Average" ? "ABOVE_AVERAGE"
-                    : this.getStanine(average) == "Average" ? "AVERAGE"
-                        : this.getStanine(average) == "Below Average" ? "BELOW_AVERAGE"
-                            : this.getStanine(average) == "Very Low" ? "VERY_LOW"
+            const average = Math.floor(postComputedData[domain] / raw_wellbeing.length);
+            const score_band = this.getStanine(average, domain) == "High" ? "VERY_HIGH"
+                : this.getStanine(average, domain) == "Above Average" ? "ABOVE_AVERAGE"
+                    : this.getStanine(average, domain) == "Average" ? "AVERAGE"
+                        : this.getStanine(average, domain) == "Below Average" ? "BELOW_AVERAGE"
+                            : this.getStanine(average, domain) == "Low" ? "VERY_LOW"
                                 : undefined
 
             const domainName = domainNameMap[domain]
@@ -373,9 +397,9 @@ export class WellbeingService {
 
             const data: DomainWellbeing = {
                 domain,
-                stanine_score: average,
-                stanine_label: this.getStanine(average),
-                insight: domainInsight?.insight,
+                stanine_score: this.compute(average, domain),
+                stanine_label: this.getStanine(average, domain),
+                insight: domainInsight.insight,
                 to_do: domainInsight.what_to_build_on
             };
 
@@ -384,17 +408,40 @@ export class WellbeingService {
         return result
     }
 
-    private getStanine(value: number) {
-        if (value >= 96) {
-            return "Very High"
-        } else if (value <= 95 && value >= 77) {
-            return "Above Average"
-        } else if (value <= 76 && value >= 23) {
-            return "Average"
-        } else if (value <= 22 && value >= 4) {
-            return "Below Average"
-        } else {
-            return "Very Low"
+    private getStanine(value: number, domain: string) {
+
+        switch (domain) {
+            case "character":
+                return value > 26 ? "Above Average"
+                    : value <= 26 && value >= 21 ? "Average"
+                        : value == 20 ? "Below Average"
+                            : value <= 19 ? "Low"
+                                : "Invalid Label"
+
+            case "career":
+                return value > 26 ? "Above Average"
+                    : value <= 26 && value >= 21 ? "Average"
+                        : value == 20 ? "Below Average"
+                            : value <= 19 ? "Low"
+                                : "Invalid Label"
+
+            case "connectedness":
+                return value == 20 ? "High"
+                    : value <= 19 && value >= 18 ? "Above Average"
+                        : value <= 17 && value >= 13 ? "Average"
+                            : value <= 12 && value >= 11 ? "Below Average"
+                                : value < 11 ? "Low"
+                                    : "Invalid Label"
+
+            case "contentment":
+                return value >= 21 ? "High"
+                    : value <= 20 && value >= 19 ? "Above Average"
+                        : value <= 18 && value >= 13 ? "Average"
+                            : value <= 12 && value >= 10 ? "Below Average"
+                                : value <= 9 ? "Low"
+                                    : "Invalid Label"
+            default:
+                return "Invalid Domain"
         }
     }
 }

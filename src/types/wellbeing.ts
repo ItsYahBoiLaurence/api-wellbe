@@ -1,4 +1,4 @@
-export interface Score {
+export type Score = {
     career: number;
     character: number;
     contentment: number;
@@ -19,4 +19,9 @@ export interface DomainWellbeing {
     stanine_score: number
     insight: string
     to_do: string
+}
+
+export type WellbeingRawScore = {
+    created_at: string,
+    wellbeing_score: Score[]
 }

@@ -126,7 +126,7 @@ export class QuestionService {
 
         if (!user) throw new NotFoundException("User not in the Batch!")
 
-        const missed = await this.getMissedQuestion(user.set_participation as [], batch.current_set_number)
+        const missed = this.getMissedQuestion(user.set_participation as [], batch.current_set_number)
 
         if (missed !== null) {
             await this.prisma.answer.create({
