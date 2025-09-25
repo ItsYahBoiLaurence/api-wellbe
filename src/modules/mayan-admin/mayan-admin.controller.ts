@@ -100,19 +100,6 @@ export class MayanAdminController {
         return this.service.generateHashPass(data)
     }
 
-    // @Public()
-    @Post("sendInvite")
-    sendEmail(@CurrentUser() user_data: JwtPayload, @Body() inviteData: InviteData) {
-        return this.resendMailer.sendSingleInvite(user_data, inviteData)
-    }
-
-    @Public()
-    @Post("send-bulk-email")
-    sendBulk(@CurrentUser() user_details: JwtPayload, @UploadedFile() file: Express.Multer.File) {
-        if (!file) throw new BadRequestException("Missing File!")
-        return this.resendMailer.sendBulkEmail(user_details, file.buffer)
-    }
-
     @Public()
     @Get("generate-new-wellbe")
     generateSingleWellbeingData() {

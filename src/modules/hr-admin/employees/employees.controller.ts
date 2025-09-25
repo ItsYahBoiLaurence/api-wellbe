@@ -24,13 +24,15 @@ export class EmployeesController {
 
     @Post()
     inviteEmployees(@CurrentUser() user_data: JwtPayload, @Body() payload: InviteData) {
-        return this.resendMailer.sendSingleInvite(user_data, payload)
+        // return this.resendMailer.sendSingleInvite(user_data, payload)
+        return this.employeesService.sendSingleInvite(user_data, payload)
     }
 
     @Post('upload-csv')
     @UseInterceptors(FileInterceptor('file'))
     batchUpload(@CurrentUser() user_details: JwtPayload, @UploadedFile() file: Express.Multer.File) {
         if (!file) throw new BadRequestException("Missing File!")
-        return this.resendMailer.sendBulkEmail(user_details, file.buffer)
+        // return this.resendMailer.sendBulkEmail(user_details, file.buffer)
+        return this.employeesService.sendBulkInvite(user_details, file)
     }
 } 
