@@ -54,3 +54,11 @@ export type EmailContent = {
     left?: string
     link?: string
 }
+
+
+export type ResendEmail = {
+    to: string
+    from: string
+    subject: string
+    html: string
+}

@@ -36,3 +36,5 @@ coverage/
 # Miscellaneous
 *.tsbuildinfo
 
+invite.csv
+answers.json

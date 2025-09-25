@@ -143,7 +143,7 @@ export class WellbeingService {
 
         const user = await this.helper.getUserByEmail(sub)
 
-        const score = await this.prisma.wellbeing.findFirst({
+        const scores = await this.prisma.wellbeing.findFirst({
             where: {
                 user_email: user.email
             },
@@ -152,9 +152,27 @@ export class WellbeingService {
             }
         })
 
+        const score = (scores as unknown) as {
+            user_email: string,
+            created_at: string,
+            wellbeing_score: { career: number, character: number, contentment: number, connectedness: number },
+            department: string,
+            batch_id: string,
+            id: string
+        }
+
         if (!score) throw new NotFoundException("Score not found!")
 
-        return score.wellbeing_score
+        const result: { score: number, scoreband: string, domain: string }[] = []
+
+        const { wellbeing_score } = score
+
+        for (const domain in wellbeing_score) {
+            const scoreband = this.getStanine(wellbeing_score[domain], domain)
+            result.push({ domain, scoreband, score: this.compute(wellbeing_score[domain], domain) })
+        }
+
+        return result
     }
 
     async getCompanyWellbeing(user_details: JwtPayload, period?: string) {
@@ -374,6 +392,7 @@ export class WellbeingService {
             connectedness: "CONNECTEDNESS",
             contentment: "CONTENTMENT"
         }
+
 
         for (const domain in postComputedData) {
             const average = Math.floor(postComputedData[domain] / raw_wellbeing.length);

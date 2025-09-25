@@ -6,6 +6,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { HelperService } from '../helper/helper.service';
 import { EmailerService } from '../emailer/emailer.service';
 import { Exception } from 'handlebars';
+import { ConfigService } from '@nestjs/config';
+import { ResendMailerService } from '../resend-mailer/resend-mailer.service';
+import { Resend } from 'resend';
 
 @Injectable()
 export class CronService implements OnModuleInit {
@@ -16,11 +19,28 @@ export class CronService implements OnModuleInit {
         private readonly scheduleRegistry: SchedulerRegistry,
         private readonly prisma: PrismaService,
         private readonly helper: HelperService,
-        private readonly emailer: EmailerService
-    ) { }
+        private readonly config: ConfigService,
+        private readonly resend: ResendMailerService
+    ) {
+    }
 
     onModuleInit() {
         this.getNotFinishedCompany()
+    }
+
+    private stringTransformer(text: string) {
+        return text.toLowerCase().replace(' ', '-')
+    }
+
+    private CRON_STRING = {
+        DAILY: CronExpression.EVERY_DAY_AT_2AM,
+        WEEKLY: "0 2 * * 1",
+        EVERY_HOUR: CronExpression.EVERY_HOUR,
+        EVERY_MINUTE: CronExpression.EVERY_MINUTE,
+    };
+
+    private getCronString(freq: string) {
+        return this.CRON_STRING[freq] || CronExpression.EVERY_DAY_AT_2AM
     }
 
     private async getNotFinishedCompany() {
@@ -41,29 +61,18 @@ export class CronService implements OnModuleInit {
         })
 
         if (!companies) throw new Exception("No Companies")
-
-        companies.map(({ company_name, employees_under_batch, frequency }) => {
-            const cron_string = frequency === "DAILY" ? CronExpression.EVERY_DAY_AT_2AM
-                : frequency === "WEEKLY" ? "0 2 * * 1"
-                    : frequency === "EVERY_HOUR" ? CronExpression.EVERY_HOUR
-                        : frequency === "EVERY_MINUTE" ? CronExpression.EVERY_MINUTE
-                            : CronExpression.EVERY_DAY_AT_2AM
-
+        for (const { company_name, employees_under_batch, frequency } of companies) {
             const emails = employees_under_batch.map(emp => emp.email)
-
-            this.addCronJob(company_name, emails, cron_string)
-
-        })
-    }
-
-    private stringTransformer(text: string) {
-        return text.toLowerCase().replace(' ', '-')
+            this.addCronJob(company_name, emails, this.getCronString(frequency))
+        }
     }
 
     private async startCompanyCronJob(company_name: string, emails: string[]) {
+
+        this.console.log("this is called")
+
         const company = await this.helper.getCompany(company_name)
         const batch = await this.helper.getLatestBatch(company.name)
-
 
         if (batch?.current_set_number >= 5) {
             await this.prisma.batch_Record.update({
@@ -81,30 +90,42 @@ export class CronService implements OnModuleInit {
 
         const left = `${(5 - (batch.current_set_number))}`
 
-        emails.map(async (email) => {
-            const user = await this.helper.getUserByEmail(email)
-            if (!user) Logger.log('No user')
-            const email_data = {
+        const from = this.config.get<string>("RESEND_FROM_EMAIL")
+
+        if (!from) throw Error("FROM email not configured!")
+
+        const users = await this.prisma.employee.findMany({
+            where: {
+                email: {
+                    in: emails
+                }
+            },
+            select: {
+                first_name: true,
+                email: true
+            }
+        })
+
+        const emailContents = users.map(({ email, first_name }) => {
+            return {
+                from,
                 to: email,
-                subject: "Wellbe Reminder",
-                company: company.name,
-                user: user?.first_name as string,
-                left
-            }
-
-            try {
-                await this.emailer.reminderEmail(email_data)
-            } catch (error) {
-                Logger.log(`Error sending email to ${email}`)
-                Logger.log(`error`)
+                subject: 'Wellbe Reminder',
+                html: this.helper.getReminderFormat(first_name, left, company.name)
             }
         })
 
-        await this.prisma.batch_Record.update({
-            where: { id: batch?.id },
-            data: { current_set_number: batch?.current_set_number + 1 }
-        })
-        // Logger.log(`${company_name}`, "STARTED CRON")
+        try {
+            await this.resend.sendBulk(emailContents)
+            await this.prisma.batch_Record.update({
+                where: { id: batch?.id },
+                data: { current_set_number: batch?.current_set_number + 1 }
+            })
+
+        } catch (e) {
+            this.console.log(e)
+            throw new e
+        }
     }
 
     addCronJob(company: string, emails: string[], cronString: string) {
