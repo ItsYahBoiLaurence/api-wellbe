@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { EmailerService } from 'src/modules/emailer/emailer.service';
 import { HelperService } from 'src/modules/helper/helper.service';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
+import { ResendMailerService } from 'src/modules/resend-mailer/resend-mailer.service';
+import { ResendEmail } from 'src/types/email';
 import { JwtPayload } from 'src/types/jwt-payload';
 import { UserModel, UserWithRole } from 'src/types/user';
 
@@ -13,7 +15,8 @@ export class UserService {
         private readonly prisma: PrismaService,
         private readonly helper: HelperService,
         private readonly emailer: EmailerService,
-        private readonly config: ConfigService
+        private readonly config: ConfigService,
+        private readonly resend: ResendMailerService
     ) { }
 
     async createEmployee(payload: UserWithRole) {
@@ -91,7 +94,26 @@ export class UserService {
         const user = await this.helper.getUserByEmail(email)
         const baseUrl = this.config.get<string>("INVITE_LINK")
         const link = `${baseUrl}/change-password?data=${btoa(user.email)}`
-        return this.emailer.changePasswordEmail(user.first_name, link, user.email)
+        this.console.log(email, link)
+
+
+        const from = this.config.get<string>("RESEND_FROM_EMAIL")
+        if (!from) throw new ConflictException("From email not set!")
+
+        const emailOption: ResendEmail = {
+            to: user.email,
+            subject: "Password Change Request",
+            from,
+            html: this.helper.getForgotPassword(user.first_name, link),
+        }
+        try {
+            const { error } = await this.resend.sendEmail(emailOption)
+            if (error) throw new ConflictException(error)
+            return { success: true, message: "Password change request email sent!" }
+        } catch (e) {
+            this.console.log(e)
+            throw new ConflictException(e)
+        }
     }
 
     async passwordChange(payload: { email: string, password: string }) {

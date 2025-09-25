@@ -42,18 +42,4 @@ export class ResendMailerService {
             throw new e
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
