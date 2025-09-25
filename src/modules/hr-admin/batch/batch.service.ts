@@ -1,9 +1,12 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { CronExpression } from '@nestjs/schedule';
 import { CronService } from 'src/modules/cron/cron.service';
 import { EmailerService } from 'src/modules/emailer/emailer.service';
 import { HelperService } from 'src/modules/helper/helper.service';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
+import { ResendMailerService } from 'src/modules/resend-mailer/resend-mailer.service';
+import { ResendEmail } from 'src/types/email';
 import { JwtPayload } from 'src/types/jwt-payload';
 
 @Injectable()
@@ -14,7 +17,9 @@ export class BatchService {
         private readonly prisma: PrismaService,
         private readonly helper: HelperService,
         private readonly cron: CronService,
-        private readonly emailer: EmailerService
+        private readonly emailer: EmailerService,
+        private readonly resend: ResendMailerService,
+        private readonly config: ConfigService
     ) { }
 
     async startBatch(user_data: JwtPayload) {
@@ -48,6 +53,8 @@ export class BatchService {
         const employeeEmails = employees?.departments
             .flatMap(department => department.employees)
             .map(employees => employees.email)
+
+        if (!employeeEmails) throw new ConflictException('Batch generation failed!')
 
         if (employeeEmails?.length === 0) throw new ConflictException(`There are no employees available in ${company} company`)
 
@@ -89,9 +96,18 @@ export class BatchService {
                     : newBatch.frequency === "EVERY_MINUTE" ? CronExpression.EVERY_MINUTE
                         : CronExpression.EVERY_DAY_AT_2AM
 
+        const emailOptions: ResendEmail[] = []
 
-        employeeEmails.map(async (email) => {
+        const from = this.config.get<string>("RESEND_FROM_EMAIL")
+        if (!from) throw new ConflictException("From email not set!")
+
+        const applink = this.config.get<string>("INVITE_LINK")
+        if (!applink) throw new ConflictException("From email not set!")
+
+
+        for (const email of employeeEmails) {
             const questions = await this.helper.generateBatchQuestions()
+            const user = await this.helper.getUserByEmail(email)
             await this.prisma.employee_Under_Batch.create({
                 data: {
                     email: email,
@@ -101,28 +117,24 @@ export class BatchService {
                     department_id: await this.helper.getDepartmentIdByUserEmail(email)
                 }
             })
-        })
+            emailOptions.push({
+                to: user.email,
+                from,
+                subject: "The Batch has Started!",
+                html: this.helper.getStartBatch(user.first_name, company_name.name, applink)
+            })
+        }
 
-        if (!employeeEmails) throw new ConflictException('Batch generation failed!')
 
-        employeeEmails.map(async (email) => {
-            const user = await this.helper.getUserByEmail(email)
-            const email_payload = {
-                to: email,
-                subject: "The Batch has Started",
-                company: company_name.name,
-                user: user.first_name
-            }
-            try {
-                this.emailer.welcomeEmail(email_payload)
-            } catch (error) {
-                this.console.log(error)
-            }
-        })
-
-        this.cron.addCronJob(company_name.name, employeeEmails, batch_frequency)
-
-        return { message: "Batch started successfully!" }
+        try {
+            const { error } = await this.resend.sendBulk(emailOptions)
+            if (error) throw new ConflictException(error)
+            this.cron.addCronJob(company_name.name, employeeEmails, batch_frequency)
+            return { success: true, message: "Notice sent success!" }
+        } catch (error) {
+            this.console.log(error)
+            throw new ConflictException(error)
+        }
     }
 
     async getBatch(user_data: JwtPayload) {
