@@ -179,25 +179,18 @@ export class WellbeingService {
 
         const company = await this.helper.getCompany(user_details.company)
 
-        const month = this.helper.getPeriod(period)
-
-        const filter = {
-            user: {
-                department: {
-                    company: {
-                        name: company.name
-                    }
-                }
-            },
-            created_at: {
-                gte: month
-            }
-        }
+        const latest_batch = await this.helper.getLatestBatch(company.name)
 
         const [employee_count, raw_wellbeing] = await Promise.all([
-            this.prisma.wellbeing.count({ where: filter }),
+            this.prisma.wellbeing.count({
+                where: {
+                    batch_id: latest_batch.id
+                },
+            }),
             this.prisma.wellbeing.findMany({
-                where: filter,
+                where: {
+                    batch_id: latest_batch.id
+                },
                 select: {
                     wellbeing_score: true
                 }
@@ -351,6 +344,7 @@ export class WellbeingService {
 
     async getDomainInsight(user_details: JwtPayload, period?: string) {
         const company = await this.helper.getCompany(user_details.company)
+        const latest_batch = await this.helper.getLatestBatch(company.name)
 
         const month = this.helper.getPeriod(period)
 
@@ -368,7 +362,9 @@ export class WellbeingService {
         }
 
         const raw_wellbeing = await this.prisma.wellbeing.findMany({
-            where: filter,
+            where: {
+                batch_id: latest_batch.id
+            },
             select: {
                 wellbeing_score: true
             }

@@ -19,13 +19,14 @@ export class AuthService {
 
         const { email, password } = credential
 
+
         const user = await this.userService.findUser(email.toLowerCase())
 
         if (!user) throw new UnauthorizedException("Invalid Credentials!")
 
         const isPassMatch = await this.helper.comparePass(password, user.password)
 
-        if (isPassMatch !== true) throw new UnauthorizedException("Incorrect Username or Password!")
+        if (isPassMatch !== true) throw new UnauthorizedException("Incorrect Username or Passwords!")
 
         const payload = {
             sub: user.email,
