@@ -16,7 +16,8 @@ export class WorkforceVitalityService {
     async getScatterplotData(file: Buffer, user_data: JwtPayload) {
         const { company } = user_data;
         const userCompany = await this.helper.getCompany(company);
-        const csvData = await this.parser.parsePerformance(file);
+        const csvData: Array<{ email: string; performance: number }> = await this.parser.parsePerformance(file);
+
         const latest_finished_batch = await this.prisma.batch_Record.findFirst({
             where: {
                 company_name: userCompany.name,
@@ -37,7 +38,7 @@ export class WorkforceVitalityService {
         const users_without_data: string[] = [];
 
         // Use for...of so that each await is respected
-        for (const { email, performance } of csvData as Array<{ email: string; performance: number }>) {
+        for (const { email, performance } of csvData) {
             const userWellbeing = await this.prisma.wellbeing.findFirst({
                 where: {
                     user_email: email,
@@ -52,12 +53,11 @@ export class WorkforceVitalityService {
                 const scoresObj = userWellbeing.wellbeing_score as Record<string, number>;
                 const scoreValues = Object.values(scoresObj);
                 const total = scoreValues.reduce((sum, val) => sum + val, 0);
-                const avgWellbeing = total / scoreValues.length;
 
                 users_with_data.push({
                     user: email,
                     performance,
-                    wellbeing: avgWellbeing,
+                    wellbeing: total,
                 });
             }
         }
@@ -96,7 +96,7 @@ export class WorkforceVitalityService {
             }
         })
 
-        if (!scatter) throw new NotFoundException("Performance vs. Wellbeing Data not founds!")
+        if (!scatter) throw new NotFoundException("Performance vs. Wellbeing Data not found!")
 
         return scatter
     }
