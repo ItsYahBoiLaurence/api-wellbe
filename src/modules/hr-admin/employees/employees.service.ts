@@ -59,7 +59,7 @@ export class EmployeesService {
         const domain_link = this.configService.get<string>("INVITE_LINK")
         const from = this.configService.get<string>("RESEND_FROM_EMAIL")
         if (!from) throw new ConflictException("From email not set!")
-        const link = `${domain_link}/sign-up?email=${payload.email}&firstname=${payload.first_name}&lastname=${payload.last_name}&department=${payload.department}&company=${name}`
+        const link = `${domain_link}sign-up?email=${payload.email}&firstname=${payload.first_name}&lastname=${payload.last_name}&department=${payload.department}&company=${name}`
         console.log(link)
 
         const emailOptions: ResendEmail = {
@@ -93,7 +93,7 @@ export class EmployeesService {
         if (!from) throw new ConflictException("from not set!")
 
         const bulkMailData: ResendEmail[] = data.map(({ email, first_name, last_name, department }) => {
-            const link = `${domain_link}/sign-up?email=${email}&firstname=${first_name}&lastname=${last_name}&department=${department}&company=${user_company.name}`
+            const link = `${domain_link}sign-up?email=${email}&firstname=${first_name}&lastname=${last_name}&department=${department}&company=${user_company.name}`
             return {
                 to: email,
                 subject: "Wellbe Invitation",
