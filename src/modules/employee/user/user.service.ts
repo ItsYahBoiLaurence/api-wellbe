@@ -93,7 +93,7 @@ export class UserService {
     async passwordReset(email: string) {
         const user = await this.helper.getUserByEmail(email)
         const baseUrl = this.config.get<string>("INVITE_LINK")
-        const link = `${baseUrl}/change-password?data=${btoa(user.email)}`
+        const link = `${baseUrl}change-password?data=${btoa(user.email)}`
         this.console.log(email, link)
 
 
