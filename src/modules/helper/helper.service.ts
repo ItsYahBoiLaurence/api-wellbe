@@ -418,7 +418,7 @@ export class HelperService {
         return question
     }
 
-    getReminderFormat(user: string, left: string, company: string) {
+    getReminderFormat(user: string, left: string, company: string, link: string) {
         return `<!DOCTYPE html>
                 <html>
                 <head>
@@ -473,7 +473,7 @@ export class HelperService {
                     </p>
                     <p>Don’t wait—your well-being is important, and completing your forms is a key step in understanding how to better care for yourself. Answer your current form now, and continue your journey towards a healthier, more balanced state of mind.</p>
                     <p>We’re here to support you every step of the way!</p>
-                    <p>Tap this <a href="https://employee-wellbe.vercel.app/" style="color: #040237;">link</a> to return to your Wellbe app and continue your journey to workplace wellbeing!</p>
+                    <p>Tap this <a href="${link}" style="color: #040237;">link</a> to return to your Wellbe app and continue your journey to workplace wellbeing!</p>
                     <p>If you have any questions, feel free to <a href="mailto:support@example.com" style="color: #040237;">contact us</a>.</p>
                     <p>Best regards,</p>
                     <p>The ${company} Team</p>

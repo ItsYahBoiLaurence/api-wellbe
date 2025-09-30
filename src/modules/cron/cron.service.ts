@@ -106,12 +106,15 @@ export class CronService implements OnModuleInit {
             }
         })
 
+        const link = this.config.get<string>("INVITE_LINK")
+        if (!link) throw Error("LINK email not configured!")
+
         const emailContents = users.map(({ email, first_name }) => {
             return {
                 from,
                 to: email,
                 subject: 'Wellbe Reminder',
-                html: this.helper.getReminderFormat(first_name, left, company.name)
+                html: this.helper.getReminderFormat(first_name, left, company.name, link)
             }
         })
 
