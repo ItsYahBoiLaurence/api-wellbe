@@ -447,4 +447,25 @@ export class MayanAdminService {
     private average(score: number, eub_count: number) {
         return Math.floor(score / eub_count)
     }
+
+
+    async updateUser(id: string, payload: {
+        first_name?: string
+        last_name?: string
+    }) {
+
+        const newInfo = await this.prisma.employee.update({
+            where: {
+                id
+            },
+            data: {
+                ...payload
+            }
+        })
+
+        if (!newInfo) throw new ConflictException("Error")
+
+        return { success: true, message: "Success!" }
+    }
+
 }
