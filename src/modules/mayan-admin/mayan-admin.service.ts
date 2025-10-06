@@ -11,6 +11,7 @@ import { CompanyAnswerModel, NewAnswerModel } from 'src/types/answer';
 import { Question, RawAnswerItem, ResultItem } from 'src/types/mayan-admin';
 import { AuthService } from '../auth/auth.service';
 import { OverallWellbeingScore, Score } from 'src/types/wellbeing';
+import { ResendMailerService } from '../resend-mailer/resend-mailer.service';
 
 @Injectable()
 export class MayanAdminService {
@@ -21,7 +22,7 @@ export class MayanAdminService {
         private readonly prisma: PrismaService,
         private readonly helper: HelperService,
         private readonly config: ConfigService,
-        private readonly mail: EmailerService,
+        private readonly resend: ResendMailerService,
         private readonly auth: AuthService
     ) { }
 
@@ -153,11 +154,22 @@ export class MayanAdminService {
         company: string
     }) {
         const domain_link = this.config.get<string>("INVITE_LINK")
-        Logger.log(data)
+        if (!domain_link) throw new Error("Domain Link not set!")
+
+        const from = this.config.get<string>("RESEND_FROM_EMAIL")
+        if (!from) throw new Error("FROM email not set!")
+
         try {
-            const link = `${domain_link}sign-up?email=${data.email}&firstname=${data.first_name}&lastname=${data.last_name}&department=${data.department}&company=${data.company}&role=admin`
-            this.mail.inviteEmployee(data.first_name, data.email, data.company, link)
-            return { message: "Invite Sent" }
+            const link = `${domain_link}/sign-up?email=${data.email}&firstname=${data.first_name}&lastname=${data.last_name}&department=${data.department}&company=${data.company}&role=admin`
+            const { error } = await this.resend.sendEmail({
+                to: data.email,
+                from,
+                subject: "Invitation",
+                html: this.helper.getInviteFormat(data.first_name, link, data.company)
+            })
+
+            if (error) throw error
+            return { success: true, message: "Success" }
         } catch (e) {
             throw new e
         }
