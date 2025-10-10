@@ -26,6 +26,16 @@ export class MayanAdminService {
         private readonly auth: AuthService
     ) { }
 
+    private flipTally(data: { SA: number, A: number, D: number, SD: number }, condition?: boolean) {
+        if (condition) return {
+            SA: data.SD,
+            A: data.D,
+            D: data.A,
+            SD: data.SA
+        }
+        return data
+    }
+
     async getCompanyDetails(user_details: JwtPayload): Promise<CompanyData[]> {
         const companies = await this.prisma.company.findMany({
             include: {
@@ -236,7 +246,6 @@ export class MayanAdminService {
 
         const questionIds = Array.from(questionIdsToFetch);
 
-        // 4. Generate level per question
         const questionLevels = new Map<number, "LOW" | "BELOW_AVERAGE" | "AVERAGE" | "HIGH">();
 
         for (const id in tallyMap) {
@@ -257,7 +266,6 @@ export class MayanAdminService {
             questionLevels.set(qid, label);
         }
 
-        // 5. Fetch questions and all interpretations
         const questions = await this.prisma.question.findMany({
             where: {
                 id: {
@@ -268,11 +276,13 @@ export class MayanAdminService {
                 id: true,
                 question: true,
                 domain: true,
-                interpretation: true // fetch all and filter in JS
+                interpretation: true,
+                is_flipped: true
             }
         });
 
-        // 6. Filter interpretations based on per-question level
+        if (!questions) throw new ConflictException("Questions not Loaded!")
+
         const questionMap = new Map<number, Question>();
         questions.forEach(q => {
             const level = questionLevels.get(q.id);
@@ -280,24 +290,25 @@ export class MayanAdminService {
             questionMap.set(q.id, q);
         });
 
-        // 7. Format final results
         const result: ResultItem[] = [];
         for (const qidString in tallyMap) {
             const qid = parseInt(qidString);
             const answers = tallyMap[qidString];
             const question = questionMap.get(qid);
 
+            const answer = this.flipTally(answers, question?.is_flipped)
+
             if (!question) {
                 console.warn(`Question with ID ${qid} not found in database. Skipping.`);
                 continue;
             }
 
-            const respondents = Object.values(answers).reduce((sum, count) => sum + count, 0);
+            const respondents = Object.values(answer).reduce((sum, count) => sum + count, 0);
 
             result.push({
                 question,
                 respondents,
-                answer: answers,
+                answer,
             });
         }
 

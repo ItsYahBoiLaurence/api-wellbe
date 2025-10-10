@@ -4,7 +4,7 @@ export interface BatchRecord {
 }
 
 export interface RawAnswerItem {
-    answer: Record<string, number>[]; // e.g., [{ "1": 4 }, { "2": 3 }]
+    answer: Record<string, number>[];
 }
 
 export type AnswerLabel = "SA" | "A" | "D" | "SD";
@@ -18,12 +18,11 @@ export interface Tally {
 
 export interface Question {
     id: number;
-    // Assuming questions have a 'text' property
-    // ... other fields
+    is_flipped: boolean
 }
 
 export interface ResultItem {
     question: Question;
     respondents: number;
-    answer: Tally; // Or Record<AnswerLabel, number> if you prefer
+    answer: Tally;
 }
