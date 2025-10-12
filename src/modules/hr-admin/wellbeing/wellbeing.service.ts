@@ -181,7 +181,8 @@ export class WellbeingService {
 
         const eub = await this.prisma.employee_Under_Batch.findMany({
             where: {
-                batch_id: latest_batch.id
+                batch_id: latest_batch.id,
+                is_completed: true
             },
             select: {
                 id: true
@@ -301,8 +302,8 @@ export class WellbeingService {
             orderBy: {
                 created_at: 'asc'
             },
-            take: 12,
             select: {
+                id: true,
                 created_at: true,
                 Wellbeing: {
                     select: {
@@ -312,35 +313,49 @@ export class WellbeingService {
             }
         })
 
-        // const batch = (batch_record as unknown) as WellbeingRawScore[]
+        const result: { wellbeing: number, created_at: string | Date }[] = []
 
-        // this.logger.log(batch)
+        for (const { id, created_at } of batch) {
+            const eub = await this.prisma.employee_Under_Batch.findMany({
+                where: {
+                    batch_id: id,
+                    is_completed: true
+                },
+                select: {
+                    id: true
+                }
+            })
 
-        return batch.map(({ created_at, Wellbeing }) => {
-            if (Wellbeing.length === 0) {
-                return { created_at, wellbeing: null }
-            }
+            if (!eub) throw new ConflictException("No user under batch!")
 
-            const wellbe = Wellbeing.map(w =>
-                w.wellbeing_score as Record<string, number>
-            )
+            const flatEub = eub.flatMap((item) => item.id)
 
-            const keys = Object.keys(wellbe[0])
+            const individual_answers = await this.prisma.answer.findMany({
+                where: {
+                    employee_id: {
+                        in: flatEub
+                    }
+                },
 
-            const average_Wellbeing = keys.reduce((acc, key) => {
-                const total = wellbe.reduce((sum, s) => sum + (s[key] ?? 0), 0);
-                acc[key] = Math.floor(total / wellbe.length);
-                return (acc);
-            }, {} as Record<string, number>);
+                select: {
+                    answer: true
+                }
+            })
 
-            const sumOfAverages = keys.reduce(
-                (sum, key) => sum + average_Wellbeing[key],
-                0
-            );
-            const wellbeing = Math.floor(sumOfAverages);
-            const data = { created_at, wellbeing }
-            return data
-        })
+            if (!individual_answers) throw new ConflictException("Error generating Individual Answers!")
+
+            const aggregates = this.getSumofAllAnswers(individual_answers as { answer: { [key: string]: number }[] }[])
+
+            const wellbeingData = this.aggregateData(aggregates, flatEub.length)
+
+            result.push({
+                wellbeing: Number((Number(wellbeingData.character) + Number(wellbeingData.career) + Number(wellbeingData.connectedness) + Number(wellbeingData.contentment)).toFixed(2)),
+                created_at
+            })
+        }
+
+        return result
+
     }
 
     async getDomainInsight(user_details: JwtPayload, period?: string) {
@@ -348,7 +363,8 @@ export class WellbeingService {
         const latest_batch = await this.helper.getLatestBatch(company.name)
         const eub = await this.prisma.employee_Under_Batch.findMany({
             where: {
-                batch_id: latest_batch.id
+                batch_id: latest_batch.id,
+                is_completed: true
             },
             select: {
                 id: true
