@@ -37,7 +37,7 @@ async function main() {
     try {
         const latestBatch = await prisma.batch_Record.findFirst({
             where: {
-                company_name: "Yellow Cab"
+                company_name: "Positive Workplaces"
             },
             orderBy: {
                 created_at: 'desc'

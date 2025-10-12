@@ -19,8 +19,8 @@ export class WellbeingService {
         const maxScore = {
             character: 28,
             career: 28,
-            contentment: 24,
-            connectedness: 20
+            contentment: 20,
+            connectedness: 24
         }
 
         return Math.floor((rawScore / (maxScore[domain]) * 100))
@@ -345,40 +345,36 @@ export class WellbeingService {
     async getDomainInsight(user_details: JwtPayload, period?: string) {
         const company = await this.helper.getCompany(user_details.company)
         const latest_batch = await this.helper.getLatestBatch(company.name)
-
-        const month = this.helper.getPeriod(period)
-
-        const filter = {
-            user: {
-                department: {
-                    company: {
-                        name: company.name
-                    }
-                }
-            },
-            created_at: {
-                gte: month
-            }
-        }
-
-        const raw_wellbeing = await this.prisma.wellbeing.findMany({
+        const eub = await this.prisma.employee_Under_Batch.findMany({
             where: {
                 batch_id: latest_batch.id
             },
             select: {
-                wellbeing_score: true
+                id: true
             }
-        }) as OverallWellbeingScore[]
+        })
 
-        if (!raw_wellbeing || raw_wellbeing.length == 0) throw new NotFoundException("No wellbeing data!")
+        if (!eub) throw new ConflictException("No user under batch!")
 
-        const postComputedData = raw_wellbeing.reduce((acc, { wellbeing_score }) => {
-            acc.character += wellbeing_score.character
-            acc.career += wellbeing_score.career
-            acc.connectedness += wellbeing_score.connectedness
-            acc.contentment += wellbeing_score.contentment
-            return acc
-        }, { character: 0, career: 0, connectedness: 0, contentment: 0 })
+        const flatEub = eub.flatMap((item) => item.id)
+
+        const individual_answers = await this.prisma.answer.findMany({
+            where: {
+                employee_id: {
+                    in: flatEub
+                }
+            },
+
+            select: {
+                answer: true
+            }
+        })
+
+        if (!individual_answers) throw new ConflictException("Error generating Individual Answers!")
+
+        const aggregates = this.getSumofAllAnswers(individual_answers as { answer: { [key: string]: number }[] }[])
+
+        const wellbeing = this.aggregateData(aggregates, flatEub.length)
 
         const result: DomainWellbeing[] = []
 
@@ -389,9 +385,8 @@ export class WellbeingService {
             contentment: "CONTENTMENT"
         }
 
-
-        for (const domain in postComputedData) {
-            const average = Math.floor(postComputedData[domain] / raw_wellbeing.length);
+        for (const domain in wellbeing) {
+            const average = wellbeing[domain]
             const score_band = this.getStanine(average, domain) == "High" ? "VERY_HIGH"
                 : this.getStanine(average, domain) == "Above Average" ? "ABOVE_AVERAGE"
                     : this.getStanine(average, domain) == "Average" ? "AVERAGE"
@@ -421,6 +416,70 @@ export class WellbeingService {
             result.push(data)
         }
         return result
+    }
+
+
+    private aggregateData(aggregates: {
+        [x: string]: number;
+    }[], eubCount: number) {
+        const aggregatesResult = { character: 0, career: 0, connectedness: 0, contentment: 0 }
+
+        aggregates.forEach(obj => {
+            const key = Object.keys(obj)[0];
+            const value = obj[key];
+            const prefix = key.charAt(0);
+
+            switch (prefix) {
+                case '1':
+                    aggregatesResult.character += value;
+                    break;
+                case '2':
+                    aggregatesResult.career += value;
+                    break;
+                case '3':
+                    aggregatesResult.connectedness += value;
+                    break;
+                case '4':
+                    aggregatesResult.contentment += value;
+                    break;
+            }
+        })
+
+        return {
+            character: (aggregatesResult.character / eubCount).toFixed(2),
+            career: (aggregatesResult.career / eubCount).toFixed(2),
+            connectedness: (aggregatesResult.connectedness / eubCount).toFixed(2),
+            contentment: (aggregatesResult.contentment / eubCount).toFixed(2),
+        }
+
+    }
+
+    private getSumofAllAnswers(data: { answer: { [key: string]: number }[] }[]) {
+        const sumMap = {};
+
+        // Iterate through each item
+        data.forEach(item => {
+            // Iterate through each answer object in the answer array
+            item.answer.forEach(answerObj => {
+                // Get the key and value from the object
+                const key = Object.keys(answerObj)[0];
+                const value = answerObj[key];
+
+                // Add to existing sum or initialize
+                if (sumMap[key]) {
+                    sumMap[key] += value;
+                } else {
+                    sumMap[key] = value;
+                }
+            });
+        });
+
+        // Convert the map back to array of objects
+        const result = Object.keys(sumMap).map(key => ({
+            [key]: sumMap[key]
+        }));
+
+        return result;
     }
 
     private getStanine(value: number, domain: string) {
