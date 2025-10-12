@@ -176,45 +176,46 @@ export class WellbeingService {
     }
 
     async getCompanyWellbeing(user_details: JwtPayload, period?: string) {
-
         const company = await this.helper.getCompany(user_details.company)
-
         const latest_batch = await this.helper.getLatestBatch(company.name)
 
-        const [employee_count, raw_wellbeing] = await Promise.all([
-            this.prisma.wellbeing.count({
-                where: {
-                    batch_id: latest_batch.id
-                },
-            }),
-            this.prisma.wellbeing.findMany({
-                where: {
-                    batch_id: latest_batch.id
-                },
-                select: {
-                    wellbeing_score: true
-                }
-            })
-        ])
-
-        if (!employee_count && !raw_wellbeing) throw new NotFoundException("No wellbeing data!")
-
-        const wellbeing: WellbeingItem[] = raw_wellbeing.map((item) => {
-            return {
-                wellbeing_score: (item.wellbeing_score as unknown) as Score
+        const eub = await this.prisma.employee_Under_Batch.findMany({
+            where: {
+                batch_id: latest_batch.id
+            },
+            select: {
+                id: true
             }
         })
 
-        const totals = wellbeing.reduce((acc, { wellbeing_score }) => {
-            acc.career += wellbeing_score.career
-            acc.character += wellbeing_score.character
-            acc.contentment += wellbeing_score.contentment
-            acc.connectedness += wellbeing_score.connectedness
-            return acc
-        },
-            { career: 0, character: 0, contentment: 0, connectedness: 0 }
-        )
-        return this.getAverage(totals, employee_count)
+        if (!eub) throw new ConflictException("No user under batch!")
+
+        const flatEub = eub.flatMap((item) => item.id)
+
+        const individual_answers = await this.prisma.answer.findMany({
+            where: {
+                employee_id: {
+                    in: flatEub
+                }
+            },
+
+            select: {
+                answer: true
+            }
+        })
+
+        if (!individual_answers) throw new ConflictException("Error generating Individual Answers!")
+
+        const aggregates = this.getSumofAllAnswers(individual_answers as { answer: { [key: string]: number }[] }[])
+
+        const aggregatedData = this.aggregateData(aggregates, flatEub.length)
+
+        return {
+            character: this.compute(Number(aggregatedData.character), 'character'),
+            career: this.compute(Number(aggregatedData.career), 'career'),
+            connectedness: this.compute(Number(aggregatedData.connectedness), 'connectedness'),
+            contentment: this.compute(Number(aggregatedData.contentment), 'contentment')
+        }
     }
 
     async getDepartmentWellbeing(user_details: JwtPayload, period?: string) {
