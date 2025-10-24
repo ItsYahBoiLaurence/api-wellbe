@@ -170,7 +170,7 @@ export class MayanAdminService {
         if (!from) throw new Error("FROM email not set!")
 
         try {
-            const link = `${domain_link}/sign-up?email=${data.email}&firstname=${data.first_name}&lastname=${data.last_name}&department=${data.department}&company=${data.company}&role=admin`
+            const link = `${domain_link}sign-up?email=${data.email}&firstname=${data.first_name}&lastname=${data.last_name}&department=${data.department}&company=${data.company}&role=admin`
             const { error } = await this.resend.sendEmail({
                 to: data.email,
                 from,
