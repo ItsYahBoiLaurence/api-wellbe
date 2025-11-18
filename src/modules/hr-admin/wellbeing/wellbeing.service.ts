@@ -19,8 +19,8 @@ export class WellbeingService {
         const maxScore = {
             character: 28,
             career: 28,
-            contentment: 20,
-            connectedness: 24
+            contentment: 24,
+            connectedness: 20
         }
 
         return Math.floor((rawScore / (maxScore[domain]) * 100))
@@ -171,6 +171,8 @@ export class WellbeingService {
             const scoreband = this.getStanine(wellbeing_score[domain], domain)
             result.push({ domain, scoreband, score: this.compute(wellbeing_score[domain], domain) })
         }
+
+        console.log(result)
 
         return result
     }
@@ -516,7 +518,7 @@ export class WellbeingService {
                             : value <= 19 ? "Low"
                                 : "Invalid Label"
 
-            case "contentment":
+            case "connectedness":
                 return value == 20 ? "High"
                     : value <= 19 && value >= 18 ? "Above Average"
                         : value <= 17 && value >= 13 ? "Average"
@@ -524,7 +526,7 @@ export class WellbeingService {
                                 : value < 11 ? "Low"
                                     : "Invalid Label"
 
-            case "connectedness":
+            case "contentment":
                 return value >= 21 ? "High"
                     : value <= 20 && value >= 19 ? "Above Average"
                         : value <= 18 && value >= 13 ? "Average"
