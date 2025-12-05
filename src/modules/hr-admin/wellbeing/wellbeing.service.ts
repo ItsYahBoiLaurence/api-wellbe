@@ -1,4 +1,10 @@
-import { ConflictException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { JsonValue } from '@prisma/client/runtime/library';
 import { raw } from 'express';
@@ -6,535 +12,615 @@ import { HelperService } from 'src/modules/helper/helper.service';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { DomainStats, NewAnswerModel } from 'src/types/answer';
 import { JwtPayload } from 'src/types/jwt-payload';
-import { DomainWellbeing, OverallWellbeingScore, Score, WellbeingItem, WellbeingRawScore } from 'src/types/wellbeing';
+import {
+  DomainWellbeing,
+  OverallWellbeingScore,
+  Score,
+  WellbeingItem,
+  WellbeingRawScore,
+} from 'src/types/wellbeing';
 
 @Injectable()
 export class WellbeingService {
-    private logger = new Logger(WellbeingService.name)
+  private logger = new Logger(WellbeingService.name);
 
-    constructor(private readonly helper: HelperService, private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly helper: HelperService,
+    private readonly prisma: PrismaService,
+  ) {}
 
-    private compute(rawScore: number, domain: string) {
+  private compute(rawScore: number, domain: string) {
+    const maxScore = {
+      character: 28,
+      career: 28,
+      contentment: 24,
+      connectedness: 20,
+    };
 
-        const maxScore = {
-            character: 28,
-            career: 28,
-            contentment: 24,
-            connectedness: 20
-        }
+    return Math.floor((rawScore / maxScore[domain]) * 100);
+  }
 
-        return Math.floor((rawScore / (maxScore[domain]) * 100))
+  async generateUserWellbeing(user: JwtPayload) {
+    try {
+      const start = new Date();
+      start.setHours(start.getHours() + 8);
+
+      const { company, sub } = user;
+
+      const latest_batch = await this.helper.getLatestBatch(company);
+
+      const employee_data = await this.prisma.employee.findUnique({
+        where: {
+          email: sub,
+        },
+      });
+
+      const user_batch_data = await this.prisma.employee_Under_Batch.findFirst({
+        where: {
+          email: sub,
+          batch_id: latest_batch.id,
+        },
+      });
+
+      if (!employee_data) throw new NotFoundException('User not Found!');
+      if (!user_batch_data) throw new NotFoundException('No Batch Available!');
+      if (user_batch_data.is_completed === false)
+        throw new ConflictException(
+          'Incomplete user data. Cannot generate Report!',
+        );
+
+      const user_answers = (await this.prisma.answer.findMany({
+        where: {
+          employee_id: user_batch_data.id,
+        },
+        select: {
+          answer: true,
+        },
+      })) as NewAnswerModel[];
+
+      if (user_answers.length === 0) {
+        throw new NotFoundException('No answers found for this employee!');
+      }
+
+      const flatMappedAnswers = user_answers.flatMap(
+        (answerRecord) => answerRecord.answer,
+      );
+
+      const domainScores: Score = {
+        character: 0,
+        career: 0,
+        connectedness: 0,
+        contentment: 0,
+      };
+
+      const categoryMap: Record<string, keyof Score> = {
+        '1': 'character',
+        '2': 'career',
+        '3': 'contentment',
+        '4': 'connectedness',
+      };
+
+      flatMappedAnswers.forEach((answerData) => {
+        const [[key, value]] = Object.entries(answerData);
+        const category = key.charAt(0);
+        const domain = categoryMap[category];
+        if (domain) domainScores[domain] += value;
+      });
+
+      const [
+        maxCharacterScore,
+        maxCareerScore,
+        maxConnectednessScore,
+        maxContentmentScore,
+      ] = await Promise.all([
+        this.prisma.question.count({
+          where: {
+            domain: 'character',
+          },
+        }),
+        this.prisma.question.count({
+          where: {
+            domain: 'career',
+          },
+        }),
+        this.prisma.question.count({
+          where: {
+            domain: 'connectedness',
+          },
+        }),
+        this.prisma.question.count({
+          where: {
+            domain: 'contentment',
+          },
+        }),
+      ]);
+
+      const wellbeing_score = {
+        character: domainScores.character,
+        career: domainScores.career,
+        connectedness: domainScores.connectedness,
+        contentment: domainScores.contentment,
+      };
+
+      const wellbeing = await this.prisma.wellbeing.create({
+        data: {
+          user_email: user_batch_data.email,
+          created_at: start,
+          wellbeing_score,
+          batch_id: latest_batch.id,
+          department: employee_data.department_id,
+        },
+      });
+
+      if (!wellbeing) throw new ConflictException('Error saving score!');
+
+      return { message: 'Successful wellbeing score generation!' };
+    } catch (error) {
+      Logger.log(error, 'ERROR LOG IN WELLBEING');
+      if (error.code === 'P2002')
+        throw new ConflictException('Wellbeing already generated!');
+    }
+  }
+
+  async getUserWellbeing(user_details: JwtPayload) {
+    const { sub } = user_details;
+
+    const user = await this.helper.getUserByEmail(sub);
+
+    const scores = await this.prisma.wellbeing.findFirst({
+      where: {
+        user_email: user.email,
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+
+    const score = scores as unknown as {
+      user_email: string;
+      created_at: string;
+      wellbeing_score: {
+        career: number;
+        character: number;
+        contentment: number;
+        connectedness: number;
+      };
+      department: string;
+      batch_id: string;
+      id: string;
+    };
+
+    if (!score) throw new NotFoundException('Score not found!');
+
+    const result: { score: number; scoreband: string; domain: string }[] = [];
+
+    const { wellbeing_score } = score;
+
+    for (const domain in wellbeing_score) {
+      const scoreband = this.getStanine(wellbeing_score[domain], domain);
+      result.push({
+        domain,
+        scoreband,
+        score: this.compute(wellbeing_score[domain], domain),
+      });
     }
 
-    async generateUserWellbeing(user: JwtPayload) {
-        try {
-            const start = new Date()
-            start.setHours(start.getHours() + 8)
+    console.log(result);
 
-            const { company, sub } = user
+    return result;
+  }
 
-            const latest_batch = await this.helper.getLatestBatch(company)
+  async getCompanyWellbeing(user_details: JwtPayload, period?: string) {
+    const company = await this.helper.getCompany(user_details.company);
+    const latest_batch = await this.helper.getLatestBatch(company.name);
 
-            const employee_data = await this.prisma.employee.findUnique({
-                where: {
-                    email: sub
-                }
-            })
+    const eub = await this.prisma.employee_Under_Batch.findMany({
+      where: {
+        batch_id: latest_batch.id,
+        is_completed: true,
+      },
+      select: {
+        id: true,
+      },
+    });
 
-            const user_batch_data = await this.prisma.employee_Under_Batch.findFirst({
-                where: {
-                    email: sub,
-                    batch_id: latest_batch.id
-                },
-            })
+    if (!eub) throw new ConflictException('No user under batch!');
 
-            if (!employee_data) throw new NotFoundException("User not Found!")
-            if (!user_batch_data) throw new NotFoundException("No Batch Available!")
-            if (user_batch_data.is_completed === false) throw new ConflictException("Incomplete user data. Cannot generate Report!")
+    const flatEub = eub.flatMap((item) => item.id);
 
-            const user_answers = await this.prisma.answer.findMany({
-                where: {
-                    employee_id: user_batch_data.id
-                }, select: {
-                    answer: true
-                }
-            }) as NewAnswerModel[]
+    const individual_answers = await this.prisma.answer.findMany({
+      where: {
+        employee_id: {
+          in: flatEub,
+        },
+      },
 
-            if (user_answers.length === 0) {
-                throw new NotFoundException("No answers found for this employee!")
-            }
+      select: {
+        answer: true,
+      },
+    });
 
-            const flatMappedAnswers = user_answers.flatMap(answerRecord => answerRecord.answer)
+    if (!individual_answers)
+      throw new ConflictException('Error generating Individual Answers!');
 
-            const domainScores: Score = {
-                character: 0,
-                career: 0,
-                connectedness: 0,
-                contentment: 0
-            };
+    const aggregates = this.getSumofAllAnswers(
+      individual_answers as { answer: { [key: string]: number }[] }[],
+    );
 
-            const categoryMap: Record<string, keyof Score> = {
-                '1': 'character',
-                '2': 'career',
-                '3': 'contentment',
-                '4': 'connectedness'
-            };
+    const aggregatedData = this.aggregateData(aggregates, flatEub.length);
 
-            flatMappedAnswers.forEach((answerData) => {
-                const [[key, value]] = Object.entries(answerData)
-                const category = key.charAt(0)
-                const domain = categoryMap[category]
-                if (domain) domainScores[domain] += value
-            })
+    return {
+      character: this.compute(Number(aggregatedData.character), 'character'),
+      career: this.compute(Number(aggregatedData.career), 'career'),
+      connectedness: this.compute(
+        Number(aggregatedData.connectedness),
+        'connectedness',
+      ),
+      contentment: this.compute(
+        Number(aggregatedData.contentment),
+        'contentment',
+      ),
+    };
+  }
 
+  async getDepartmentWellbeing(user_details: JwtPayload, period?: string) {
+    const company = await this.helper.getCompany(user_details.company);
 
-            const [maxCharacterScore, maxCareerScore, maxConnectednessScore, maxContentmentScore] = await Promise.all([
-                this.prisma.question.count({
-                    where: {
-                        domain: 'character'
-                    }
-                }),
-                this.prisma.question.count({
-                    where: {
-                        domain: 'career'
-                    }
-                }),
-                this.prisma.question.count({
-                    where: {
-                        domain: 'connectedness'
-                    }
-                }),
-                this.prisma.question.count({
-                    where: {
-                        domain: 'contentment'
-                    }
-                })
-            ])
+    const month = this.helper.getPeriod(period);
 
-            const wellbeing_score = {
-                character: domainScores.character,
-                career: domainScores.career,
-                connectedness: domainScores.connectedness,
-                contentment: domainScores.contentment,
-            }
-
-            const wellbeing = await this.prisma.wellbeing.create({
-                data: {
-                    user_email: user_batch_data.email,
-                    created_at: start,
-                    wellbeing_score,
-                    batch_id: latest_batch.id,
-                    department: employee_data.department_id
-                }
-            })
-
-            if (!wellbeing) throw new ConflictException("Error saving score!")
-
-            return { message: "Successful wellbeing score generation!" }
-        } catch (error) {
-            Logger.log(error, "ERROR LOG IN WELLBEING")
-            if (error.code === 'P2002') throw new ConflictException("Wellbeing already generated!")
-        }
-    }
-
-    async getUserWellbeing(user_details: JwtPayload) {
-
-        const { sub } = user_details
-
-        const user = await this.helper.getUserByEmail(sub)
-
-        const scores = await this.prisma.wellbeing.findFirst({
-            where: {
-                user_email: user.email
+    const deptWellbeing = await this.prisma.department.findMany({
+      where: {
+        company_id: company.name,
+      },
+      select: {
+        name: true,
+        Wellbeing: {
+          where: {
+            created_at: {
+              gte: month,
             },
-            orderBy: {
-                created_at: 'desc'
-            }
-        })
+          },
+          select: {
+            wellbeing_score: true,
+          },
+        },
+      },
+    });
 
-        const score = (scores as unknown) as {
-            user_email: string,
-            created_at: string,
-            wellbeing_score: { career: number, character: number, contentment: number, connectedness: number },
-            department: string,
-            batch_id: string,
-            id: string
-        }
+    return deptWellbeing.map(({ name, Wellbeing }) => {
+      if (Wellbeing.length === 0) {
+        return { name, average_Wellbeing: null, wellbeing: null };
+      }
 
-        if (!score) throw new NotFoundException("Score not found!")
+      const scores = Wellbeing.map(
+        (w) => w.wellbeing_score as Record<string, number>,
+      );
 
-        const result: { score: number, scoreband: string, domain: string }[] = []
+      const keys = Object.keys(scores[0]);
 
-        const { wellbeing_score } = score
+      const average_Wellbeing = keys.reduce(
+        (acc, key) => {
+          const total = scores.reduce((sum, s) => sum + (s[key] ?? 0), 0);
+          acc[key] = Math.floor(total / scores.length);
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
 
-        for (const domain in wellbeing_score) {
-            const scoreband = this.getStanine(wellbeing_score[domain], domain)
-            result.push({ domain, scoreband, score: this.compute(wellbeing_score[domain], domain) })
-        }
+      const sumOfAverages = keys.reduce(
+        (sum, key) => sum + average_Wellbeing[key],
+        0,
+      );
+      const wellbeing = Math.floor(sumOfAverages / keys.length);
 
-        console.log(result)
+      return { name, average_Wellbeing, wellbeing };
+    });
+  }
 
-        return result
+  private getAverage(data: Score, count: number) {
+    const career = Math.floor(data.career / count);
+    const character = Math.floor(data.character / count);
+    const contentment = Math.floor(data.contentment / count);
+    const connectedness = Math.floor(data.connectedness / count);
+
+    const wellbe = Math.floor(career + character + contentment + connectedness);
+
+    return {
+      career: this.compute(career, 'career'),
+      character: this.compute(character, 'character'),
+      contentment: this.compute(contentment, 'contentment'),
+      connectedness: this.compute(connectedness, 'connectedness'),
+      wellbe,
+    };
+  }
+
+  async getComputedDomain(user_details: JwtPayload, period?: string) {
+    const company = await this.helper.getCompany(user_details.company);
+    const month = this.helper.getPeriod(period);
+
+    const batch = await this.prisma.batch_Record.findMany({
+      where: {
+        company_name: company.name,
+        created_at: {
+          gte: month,
+        },
+        is_completed: true,
+      },
+      orderBy: {
+        created_at: 'asc',
+      },
+      select: {
+        id: true,
+        created_at: true,
+        Wellbeing: {
+          select: {
+            wellbeing_score: true,
+          },
+        },
+      },
+    });
+
+    const result: { wellbeing: number; created_at: string | Date }[] = [];
+
+    for (const { id, created_at } of batch) {
+      const eub = await this.prisma.employee_Under_Batch.findMany({
+        where: {
+          batch_id: id,
+          is_completed: true,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!eub) throw new ConflictException('No user under batch!');
+
+      const flatEub = eub.flatMap((item) => item.id);
+
+      const individual_answers = await this.prisma.answer.findMany({
+        where: {
+          employee_id: {
+            in: flatEub,
+          },
+        },
+
+        select: {
+          answer: true,
+        },
+      });
+
+      if (!individual_answers)
+        throw new ConflictException('Error generating Individual Answers!');
+
+      const aggregates = this.getSumofAllAnswers(
+        individual_answers as { answer: { [key: string]: number }[] }[],
+      );
+
+      const wellbeingData = this.aggregateData(aggregates, flatEub.length);
+
+      result.push({
+        wellbeing: Number(
+          (
+            Number(wellbeingData.character) +
+            Number(wellbeingData.career) +
+            Number(wellbeingData.connectedness) +
+            Number(wellbeingData.contentment)
+          ).toFixed(2),
+        ),
+        created_at,
+      });
     }
 
-    async getCompanyWellbeing(user_details: JwtPayload, period?: string) {
-        const company = await this.helper.getCompany(user_details.company)
-        const latest_batch = await this.helper.getLatestBatch(company.name)
+    return result;
+  }
 
-        const eub = await this.prisma.employee_Under_Batch.findMany({
-            where: {
-                batch_id: latest_batch.id,
-                is_completed: true
-            },
-            select: {
-                id: true
-            }
-        })
+  async getDomainInsight(user_details: JwtPayload, period?: string) {
+    const company = await this.helper.getCompany(user_details.company);
+    const latest_batch = await this.helper.getLatestBatch(company.name);
+    const eub = await this.prisma.employee_Under_Batch.findMany({
+      where: {
+        batch_id: latest_batch.id,
+        is_completed: true,
+      },
+      select: {
+        id: true,
+      },
+    });
 
-        if (!eub) throw new ConflictException("No user under batch!")
+    if (!eub) throw new ConflictException('No user under batch!');
 
-        const flatEub = eub.flatMap((item) => item.id)
+    const flatEub = eub.flatMap((item) => item.id);
 
-        const individual_answers = await this.prisma.answer.findMany({
-            where: {
-                employee_id: {
-                    in: flatEub
-                }
-            },
+    const individual_answers = await this.prisma.answer.findMany({
+      where: {
+        employee_id: {
+          in: flatEub,
+        },
+      },
 
-            select: {
-                answer: true
-            }
-        })
+      select: {
+        answer: true,
+      },
+    });
 
-        if (!individual_answers) throw new ConflictException("Error generating Individual Answers!")
+    if (!individual_answers)
+      throw new ConflictException('Error generating Individual Answers!');
 
-        const aggregates = this.getSumofAllAnswers(individual_answers as { answer: { [key: string]: number }[] }[])
+    const aggregates = this.getSumofAllAnswers(
+      individual_answers as { answer: { [key: string]: number }[] }[],
+    );
 
-        const aggregatedData = this.aggregateData(aggregates, flatEub.length)
+    const wellbeing = this.aggregateData(aggregates, flatEub.length);
 
-        return {
-            character: this.compute(Number(aggregatedData.character), 'character'),
-            career: this.compute(Number(aggregatedData.career), 'career'),
-            connectedness: this.compute(Number(aggregatedData.connectedness), 'connectedness'),
-            contentment: this.compute(Number(aggregatedData.contentment), 'contentment')
+    const result: DomainWellbeing[] = [];
+
+    const domainNameMap = {
+      character: 'CHARACTER',
+      career: 'CAREER',
+      connectedness: 'CONNECTEDNESS',
+      contentment: 'CONTENTMENT',
+    };
+
+    for (const domain in wellbeing) {
+      const average = wellbeing[domain];
+      const score_band =
+        this.getStanine(average, domain) == 'High'
+          ? 'VERY_HIGH'
+          : this.getStanine(average, domain) == 'Above Average'
+            ? 'ABOVE_AVERAGE'
+            : this.getStanine(average, domain) == 'Average'
+              ? 'AVERAGE'
+              : this.getStanine(average, domain) == 'Below Average'
+                ? 'BELOW_AVERAGE'
+                : this.getStanine(average, domain) == 'Low'
+                  ? 'VERY_LOW'
+                  : undefined;
+
+      const domainName = domainNameMap[domain];
+
+      const domainInsight = await this.prisma.domainInterpretation.findFirst({
+        where: {
+          domain: domainName,
+          score_band,
+        },
+      });
+
+      if (!domainInsight) throw new ConflictException('No Insight');
+
+      const data: DomainWellbeing = {
+        domain,
+        stanine_score: this.compute(average, domain),
+        stanine_label: this.getStanine(average, domain),
+        insight: domainInsight.insight,
+        to_do: domainInsight.what_to_build_on,
+      };
+
+      result.push(data);
+    }
+    return result;
+  }
+
+  private aggregateData(
+    aggregates: {
+      [x: string]: number;
+    }[],
+    eubCount: number,
+  ) {
+    const aggregatesResult = {
+      character: 0,
+      career: 0,
+      contentment: 0,
+      connectedness: 0,
+    };
+
+    aggregates.forEach((obj) => {
+      const key = Object.keys(obj)[0];
+      const value = obj[key];
+      const prefix = key.charAt(0);
+
+      switch (prefix) {
+        case '1':
+          aggregatesResult.character += value;
+          break;
+        case '2':
+          aggregatesResult.career += value;
+          break;
+        case '3':
+          aggregatesResult.contentment += value;
+          break;
+        case '4':
+          aggregatesResult.connectedness += value;
+          break;
+      }
+    });
+
+    return {
+      character: (aggregatesResult.character / eubCount).toFixed(2),
+      career: (aggregatesResult.career / eubCount).toFixed(2),
+      connectedness: (aggregatesResult.connectedness / eubCount).toFixed(2),
+      contentment: (aggregatesResult.contentment / eubCount).toFixed(2),
+    };
+  }
+
+  private getSumofAllAnswers(data: { answer: { [key: string]: number }[] }[]) {
+    const sumMap = {};
+
+    // Iterate through each item
+    data.forEach((item) => {
+      // Iterate through each answer object in the answer array
+      item.answer.forEach((answerObj) => {
+        // Get the key and value from the object
+        const key = Object.keys(answerObj)[0];
+        const value = answerObj[key];
+
+        // Add to existing sum or initialize
+        if (sumMap[key]) {
+          sumMap[key] += value;
+        } else {
+          sumMap[key] = value;
         }
+      });
+    });
+
+    // Convert the map back to array of objects
+    const result = Object.keys(sumMap).map((key) => ({
+      [key]: sumMap[key],
+    }));
+
+    return result;
+  }
+
+  private getStanine(value: number, domain: string) {
+    switch (domain) {
+      case 'character':
+        return value > 26
+          ? 'Above Average'
+          : value <= 26 && value >= 21
+            ? 'Average'
+            : value == 20
+              ? 'Below Average'
+              : value <= 19
+                ? 'Low'
+                : 'Invalid Label';
+
+      case 'career':
+        return value > 26
+          ? 'Above Average'
+          : value <= 26 && value >= 21
+            ? 'Average'
+            : value == 20
+              ? 'Below Average'
+              : value <= 19
+                ? 'Low'
+                : 'Invalid Label';
+
+      case 'connectedness':
+        return value == 20
+          ? 'High'
+          : value <= 19 && value >= 18
+            ? 'Above Average'
+            : value <= 17 && value >= 13
+              ? 'Average'
+              : value <= 12 && value >= 11
+                ? 'Below Average'
+                : value < 11
+                  ? 'Low'
+                  : 'Invalid Label';
+
+      case 'contentment':
+        return value >= 21
+          ? 'High'
+          : value <= 20 && value >= 19
+            ? 'Above Average'
+            : value <= 18 && value >= 13
+              ? 'Average'
+              : value <= 12 && value >= 10
+                ? 'Below Average'
+                : value <= 9
+                  ? 'Low'
+                  : 'Invalid Label';
+      default:
+        return 'Invalid Domain';
     }
-
-    async getDepartmentWellbeing(user_details: JwtPayload, period?: string) {
-        const company = await this.helper.getCompany(user_details.company)
-
-        const month = this.helper.getPeriod(period)
-
-        const deptWellbeing = await this.prisma.department.findMany({
-            where: {
-                company_id: company.name
-            },
-            select: {
-                name: true,
-                Wellbeing: {
-                    where: {
-                        created_at: {
-                            gte: month
-                        }
-                    },
-                    select: {
-                        wellbeing_score: true
-                    }
-                }
-            }
-        });
-
-        return deptWellbeing.map(({ name, Wellbeing }) => {
-            if (Wellbeing.length === 0) {
-                return { name, average_Wellbeing: null, wellbeing: null };
-            }
-
-            const scores = Wellbeing.map(w =>
-                w.wellbeing_score as Record<string, number>
-            );
-
-            const keys = Object.keys(scores[0]);
-
-            const average_Wellbeing = keys.reduce((acc, key) => {
-                const total = scores.reduce((sum, s) => sum + (s[key] ?? 0), 0);
-                acc[key] = Math.floor(total / scores.length);
-                return (acc);
-            }, {} as Record<string, number>);
-
-            const sumOfAverages = keys.reduce(
-                (sum, key) => sum + average_Wellbeing[key],
-                0
-            );
-            const wellbeing = Math.floor(sumOfAverages / keys.length);
-
-            return { name, average_Wellbeing, wellbeing };
-        });
-    }
-
-    private getAverage(data: Score, count: number) {
-        const career = Math.floor(data.career / count)
-        const character = Math.floor(data.character / count)
-        const contentment = Math.floor(data.contentment / count)
-        const connectedness = Math.floor(data.connectedness / count)
-
-        const wellbe = Math.floor((career + character + contentment + connectedness))
-
-        return {
-            career: this.compute(career, 'career'),
-            character: this.compute(character, 'character'),
-            contentment: this.compute(contentment, 'contentment'),
-            connectedness: this.compute(connectedness, 'connectedness'),
-            wellbe
-        }
-    }
-
-    async getComputedDomain(user_details: JwtPayload, period?: string) {
-        const company = await this.helper.getCompany(user_details.company)
-        const month = this.helper.getPeriod(period)
-
-        const batch = await this.prisma.batch_Record.findMany({
-            where: {
-                company_name: company.name,
-                created_at: {
-                    gte: month
-                },
-                is_completed: true
-            },
-            orderBy: {
-                created_at: 'asc'
-            },
-            select: {
-                id: true,
-                created_at: true,
-                Wellbeing: {
-                    select: {
-                        wellbeing_score: true
-                    }
-                }
-            }
-        })
-
-        const result: { wellbeing: number, created_at: string | Date }[] = []
-
-        for (const { id, created_at } of batch) {
-            const eub = await this.prisma.employee_Under_Batch.findMany({
-                where: {
-                    batch_id: id,
-                    is_completed: true
-                },
-                select: {
-                    id: true
-                }
-            })
-
-            if (!eub) throw new ConflictException("No user under batch!")
-
-            const flatEub = eub.flatMap((item) => item.id)
-
-            const individual_answers = await this.prisma.answer.findMany({
-                where: {
-                    employee_id: {
-                        in: flatEub
-                    }
-                },
-
-                select: {
-                    answer: true
-                }
-            })
-
-            if (!individual_answers) throw new ConflictException("Error generating Individual Answers!")
-
-            const aggregates = this.getSumofAllAnswers(individual_answers as { answer: { [key: string]: number }[] }[])
-
-            const wellbeingData = this.aggregateData(aggregates, flatEub.length)
-
-            result.push({
-                wellbeing: Number((Number(wellbeingData.character) + Number(wellbeingData.career) + Number(wellbeingData.connectedness) + Number(wellbeingData.contentment)).toFixed(2)),
-                created_at
-            })
-        }
-
-        return result
-
-    }
-
-    async getDomainInsight(user_details: JwtPayload, period?: string) {
-        const company = await this.helper.getCompany(user_details.company)
-        const latest_batch = await this.helper.getLatestBatch(company.name)
-        const eub = await this.prisma.employee_Under_Batch.findMany({
-            where: {
-                batch_id: latest_batch.id,
-                is_completed: true
-            },
-            select: {
-                id: true
-            }
-        })
-
-        if (!eub) throw new ConflictException("No user under batch!")
-
-        const flatEub = eub.flatMap((item) => item.id)
-
-        const individual_answers = await this.prisma.answer.findMany({
-            where: {
-                employee_id: {
-                    in: flatEub
-                }
-            },
-
-            select: {
-                answer: true
-            }
-        })
-
-        if (!individual_answers) throw new ConflictException("Error generating Individual Answers!")
-
-        const aggregates = this.getSumofAllAnswers(individual_answers as { answer: { [key: string]: number }[] }[])
-
-        const wellbeing = this.aggregateData(aggregates, flatEub.length)
-
-        const result: DomainWellbeing[] = []
-
-        const domainNameMap = {
-            character: "CHARACTER",
-            career: "CAREER",
-            connectedness: "CONNECTEDNESS",
-            contentment: "CONTENTMENT"
-        }
-
-        for (const domain in wellbeing) {
-            const average = wellbeing[domain]
-            const score_band = this.getStanine(average, domain) == "High" ? "VERY_HIGH"
-                : this.getStanine(average, domain) == "Above Average" ? "ABOVE_AVERAGE"
-                    : this.getStanine(average, domain) == "Average" ? "AVERAGE"
-                        : this.getStanine(average, domain) == "Below Average" ? "BELOW_AVERAGE"
-                            : this.getStanine(average, domain) == "Low" ? "VERY_LOW"
-                                : undefined
-
-            const domainName = domainNameMap[domain]
-
-            const domainInsight = await this.prisma.domainInterpretation.findFirst({
-                where: {
-                    domain: domainName,
-                    score_band
-                }
-            })
-
-            if (!domainInsight) throw new ConflictException("No Insight")
-
-            const data: DomainWellbeing = {
-                domain,
-                stanine_score: this.compute(average, domain),
-                stanine_label: this.getStanine(average, domain),
-                insight: domainInsight.insight,
-                to_do: domainInsight.what_to_build_on
-            };
-
-            result.push(data)
-        }
-        return result
-    }
-
-
-    private aggregateData(aggregates: {
-        [x: string]: number;
-    }[], eubCount: number) {
-        const aggregatesResult = { character: 0, career: 0, connectedness: 0, contentment: 0 }
-
-        aggregates.forEach(obj => {
-            const key = Object.keys(obj)[0];
-            const value = obj[key];
-            const prefix = key.charAt(0);
-
-            switch (prefix) {
-                case '1':
-                    aggregatesResult.character += value;
-                    break;
-                case '2':
-                    aggregatesResult.career += value;
-                    break;
-                case '3':
-                    aggregatesResult.connectedness += value;
-                    break;
-                case '4':
-                    aggregatesResult.contentment += value;
-                    break;
-            }
-        })
-
-        return {
-            character: (aggregatesResult.character / eubCount).toFixed(2),
-            career: (aggregatesResult.career / eubCount).toFixed(2),
-            connectedness: (aggregatesResult.connectedness / eubCount).toFixed(2),
-            contentment: (aggregatesResult.contentment / eubCount).toFixed(2),
-        }
-
-    }
-
-    private getSumofAllAnswers(data: { answer: { [key: string]: number }[] }[]) {
-        const sumMap = {};
-
-        // Iterate through each item
-        data.forEach(item => {
-            // Iterate through each answer object in the answer array
-            item.answer.forEach(answerObj => {
-                // Get the key and value from the object
-                const key = Object.keys(answerObj)[0];
-                const value = answerObj[key];
-
-                // Add to existing sum or initialize
-                if (sumMap[key]) {
-                    sumMap[key] += value;
-                } else {
-                    sumMap[key] = value;
-                }
-            });
-        });
-
-        // Convert the map back to array of objects
-        const result = Object.keys(sumMap).map(key => ({
-            [key]: sumMap[key]
-        }));
-
-        return result;
-    }
-
-    private getStanine(value: number, domain: string) {
-
-        switch (domain) {
-            case "character":
-                return value > 26 ? "Above Average"
-                    : value <= 26 && value >= 21 ? "Average"
-                        : value == 20 ? "Below Average"
-                            : value <= 19 ? "Low"
-                                : "Invalid Label"
-
-            case "career":
-                return value > 26 ? "Above Average"
-                    : value <= 26 && value >= 21 ? "Average"
-                        : value == 20 ? "Below Average"
-                            : value <= 19 ? "Low"
-                                : "Invalid Label"
-
-            case "connectedness":
-                return value == 20 ? "High"
-                    : value <= 19 && value >= 18 ? "Above Average"
-                        : value <= 17 && value >= 13 ? "Average"
-                            : value <= 12 && value >= 11 ? "Below Average"
-                                : value < 11 ? "Low"
-                                    : "Invalid Label"
-
-            case "contentment":
-                return value >= 21 ? "High"
-                    : value <= 20 && value >= 19 ? "Above Average"
-                        : value <= 18 && value >= 13 ? "Average"
-                            : value <= 12 && value >= 10 ? "Below Average"
-                                : value <= 9 ? "Low"
-                                    : "Invalid Label"
-            default:
-                return "Invalid Domain"
-        }
-    }
+  }
 }
