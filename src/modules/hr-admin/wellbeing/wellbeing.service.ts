@@ -194,9 +194,6 @@ export class WellbeingService {
         score: this.compute(wellbeing_score[domain], domain),
       });
     }
-
-    console.log(result);
-
     return result;
   }
 
@@ -398,49 +395,45 @@ export class WellbeingService {
         created_at,
       };
     });
-    console.log(result);
     return result;
   }
 
   async getDomainInsight(user_details: JwtPayload) {
     const company = await this.helper.getCompany(user_details.company);
     const latest_batch = await this.helper.getLatestBatch(company.name);
-    const eub = await this.prisma.employee_Under_Batch.findMany({
+
+    // Fetch employees with their answers in a single query
+    const employees = await this.prisma.employee_Under_Batch.findMany({
       where: {
         batch_id: latest_batch.id,
         is_completed: true,
       },
       select: {
         id: true,
-      },
-    });
-
-    if (!eub) throw new ConflictException('No user under batch!');
-
-    const flatEub = eub.flatMap((item) => item.id);
-
-    const individual_answers = await this.prisma.answer.findMany({
-      where: {
-        employee_id: {
-          in: flatEub,
+        Answer: {
+          select: {
+            answer: true,
+          },
         },
       },
-
-      select: {
-        answer: true,
-      },
     });
 
-    if (!individual_answers)
+    if (!employees.length) {
+      throw new ConflictException('No user under batch!');
+    }
+
+    // Flatten all answers
+    const allAnswers = employees.flatMap((employee) => employee.Answer);
+
+    if (!allAnswers.length) {
       throw new ConflictException('Error generating Individual Answers!');
+    }
 
     const aggregates = this.getSumofAllAnswers(
-      individual_answers as { answer: { [key: string]: number }[] }[],
+      allAnswers as { answer: { [key: string]: number }[] }[],
     );
 
-    const wellbeing = this.aggregateData(aggregates, flatEub.length);
-
-    const result: DomainWellbeing[] = [];
+    const wellbeing = this.aggregateData(aggregates, employees.length);
 
     const domainNameMap = {
       character: 'CHARACTER',
@@ -449,42 +442,68 @@ export class WellbeingService {
       contentment: 'CONTENTMENT',
     };
 
-    for (const domain in wellbeing) {
-      const average = wellbeing[domain];
-      const score_band =
-        this.getStanine(average, domain) == 'High'
-          ? 'VERY_HIGH'
-          : this.getStanine(average, domain) == 'Above Average'
-            ? 'ABOVE_AVERAGE'
-            : this.getStanine(average, domain) == 'Average'
-              ? 'AVERAGE'
-              : this.getStanine(average, domain) == 'Below Average'
-                ? 'BELOW_AVERAGE'
-                : this.getStanine(average, domain) == 'Low'
-                  ? 'VERY_LOW'
-                  : undefined;
+    const stanineToScoreBandMap = {
+      High: 'VERY_HIGH',
+      'Above Average': 'ABOVE_AVERAGE',
+      Average: 'AVERAGE',
+      'Below Average': 'BELOW_AVERAGE',
+      Low: 'VERY_LOW',
+    };
 
+    // Collect all domain insights needed in a single query
+    const domainQueries = Object.keys(wellbeing).map((domain) => {
+      const average = wellbeing[domain];
+      const stanineLabel = this.getStanine(average, domain);
+      const scoreBand = stanineToScoreBandMap[stanineLabel];
+
+      return {
+        domain: domainNameMap[domain],
+        score_band: scoreBand,
+      };
+    });
+
+    // Fetch all domain interpretations in one query using OR conditions
+    const domainInsights = await this.prisma.domainInterpretation.findMany({
+      where: {
+        OR: domainQueries.map(({ domain, score_band }) => ({
+          domain,
+          score_band,
+        })),
+      },
+    });
+
+    // Create a lookup map for O(1) access
+    const insightMap = new Map(
+      domainInsights.map((insight) => [
+        `${insight.domain}_${insight.score_band}`,
+        insight,
+      ]),
+    );
+
+    // Build result array
+    const result: DomainWellbeing[] = Object.keys(wellbeing).map((domain) => {
+      const average = wellbeing[domain];
+      const stanineLabel = this.getStanine(average, domain);
+      const scoreBand = stanineToScoreBandMap[stanineLabel];
       const domainName = domainNameMap[domain];
 
-      const domainInsight = await this.prisma.domainInterpretation.findFirst({
-        where: {
-          domain: domainName,
-          score_band,
-        },
-      });
+      const domainInsight = insightMap.get(`${domainName}_${scoreBand}`);
 
-      if (!domainInsight) throw new ConflictException('No Insight');
+      if (!domainInsight) {
+        throw new ConflictException(
+          `No Insight for ${domainName} - ${scoreBand}`,
+        );
+      }
 
-      const data: DomainWellbeing = {
+      return {
         domain,
         stanine_score: this.compute(average, domain),
-        stanine_label: this.getStanine(average, domain),
+        stanine_label: stanineLabel,
         insight: domainInsight.insight,
         to_do: domainInsight.what_to_build_on,
       };
+    });
 
-      result.push(data);
-    }
     return result;
   }
 
@@ -613,7 +632,7 @@ export class WellbeingService {
   }
 
   async getCompanyOverallWellbeing(user_details: JwtPayload, period?: string) {
-    const company = await this.helper.getCompany('Kim Corp');
+    const company = await this.helper.getCompany(user_details.company);
     const month = this.helper.getPeriod(period);
 
     const batch = await this.prisma.batch_Record.findMany({

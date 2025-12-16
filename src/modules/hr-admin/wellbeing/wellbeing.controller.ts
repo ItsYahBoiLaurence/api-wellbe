@@ -34,7 +34,6 @@ export class WellbeingController {
     return this.service.getDepartmentWellbeing(user, period);
   }
 
-  @Public()
   @Get('wellbe')
   getWellbe(@CurrentUser() user: JwtPayload, @Query('period') period: string) {
     return this.service.getComputedDomain(user, period);
@@ -45,7 +44,6 @@ export class WellbeingController {
     return this.service.getDomainInsight(user);
   }
 
-  @Public()
   @Get('company-overall-wellbeing')
   getCompanyOverallWellbeing(
     @Query('period') period: string,
