@@ -1,24 +1,14 @@
 import {
   ConflictException,
   Injectable,
-  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import { JsonValue } from '@prisma/client/runtime/library';
-import { raw } from 'express';
 import { HelperService } from 'src/modules/helper/helper.service';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
-import { DomainStats, NewAnswerModel } from 'src/types/answer';
+import { NewAnswerModel } from 'src/types/answer';
 import { JwtPayload } from 'src/types/jwt-payload';
-import {
-  DomainWellbeing,
-  OverallWellbeingScore,
-  Score,
-  WellbeingItem,
-  WellbeingRawScore,
-} from 'src/types/wellbeing';
+import { DomainWellbeing, Score } from 'src/types/wellbeing';
 
 @Injectable()
 export class WellbeingService {
@@ -622,5 +612,100 @@ export class WellbeingService {
       default:
         return 'Invalid Domain';
     }
+  }
+
+  async getCompanyOverallWellbeing(user_details: JwtPayload, period?: string) {
+    const company = await this.helper.getCompany('Kim Corp');
+    const month = this.helper.getPeriod(period);
+
+    const batch = await this.prisma.batch_Record.findMany({
+      where: {
+        company_name: company.name,
+        created_at: {
+          gte: month,
+        },
+        is_completed: true,
+      },
+      orderBy: {
+        created_at: 'asc',
+      },
+      select: {
+        Wellbeing: {
+          select: {
+            wellbeing_score: true,
+          },
+        },
+      },
+    });
+
+    type WbScoreType = {
+      career: number;
+      character: number;
+      contentment: number;
+      connectedness: number;
+    };
+
+    const wbData: WbScoreType[] = [];
+
+    const emptyWellbeing = {
+      career: 0,
+      character: 0,
+      contentment: 0,
+      connectedness: 0,
+    };
+
+    for (const { Wellbeing } of batch) {
+      const wellbeingScore = Wellbeing?.[0]?.wellbeing_score;
+
+      if (!wellbeingScore) {
+        wbData.push(emptyWellbeing);
+        continue;
+      }
+
+      wbData.push(wellbeingScore as WbScoreType);
+    }
+
+    const totals = wbData.reduce(
+      (sum, item) => {
+        sum.career += item.career;
+        sum.character += item.character;
+        sum.contentment += item.contentment;
+        sum.connectedness += item.connectedness;
+        return sum;
+      },
+      {
+        career: 0,
+        character: 0,
+        contentment: 0,
+        connectedness: 0,
+      },
+    );
+
+    const wbAverage = {
+      career: Number((totals.career / wbData.length).toFixed(2)),
+      character: Number((totals.character / wbData.length).toFixed(2)),
+      contentment: Number((totals.contentment / wbData.length).toFixed(2)),
+      connectedness: Number((totals.connectedness / wbData.length).toFixed(2)),
+    };
+
+    const wbFinalScore = Object.keys(wbAverage).reduce((sum, current) => {
+      return sum + wbAverage[current];
+    }, 0);
+
+    return {
+      overall_wellbeing_label: this.getOverAllWellbeingLabel(wbFinalScore),
+    };
+  }
+
+  private getOverAllWellbeingLabel(v: number) {
+    return v > 95
+      ? 'Very High'
+      : v < 94 && v > 90
+        ? 'Above Average'
+        : v < 89 && v > 74
+          ? 'Average'
+          : v < 73 && v > 64
+            ? 'Below Average'
+            : 'Very Low';
   }
 }
