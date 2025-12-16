@@ -40,11 +40,8 @@ export class WellbeingController {
   }
 
   @Get('domain-insight')
-  getDomainInsight(
-    @CurrentUser() user: JwtPayload,
-    @Query('period') period: string,
-  ) {
-    return this.service.getDomainInsight(user, period);
+  getDomainInsight(@CurrentUser() user: JwtPayload) {
+    return this.service.getDomainInsight(user);
   }
 
   @Public()

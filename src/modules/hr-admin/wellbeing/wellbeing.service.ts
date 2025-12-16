@@ -404,7 +404,7 @@ export class WellbeingService {
     return result;
   }
 
-  async getDomainInsight(user_details: JwtPayload, period?: string) {
+  async getDomainInsight(user_details: JwtPayload) {
     const company = await this.helper.getCompany(user_details.company);
     const latest_batch = await this.helper.getLatestBatch(company.name);
     const eub = await this.prisma.employee_Under_Batch.findMany({
