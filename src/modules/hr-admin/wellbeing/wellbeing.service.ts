@@ -325,7 +325,7 @@ export class WellbeingService {
   }
 
   async getComputedDomain(user_details: JwtPayload, period?: string) {
-    const company = await this.helper.getCompany('Kim Corp');
+    const company = await this.helper.getCompany(user_details.company);
     const month = this.helper.getPeriod(period);
 
     // Fetch all data in a single optimized query with proper joins
