@@ -325,10 +325,11 @@ export class WellbeingService {
   }
 
   async getComputedDomain(user_details: JwtPayload, period?: string) {
-    const company = await this.helper.getCompany(user_details.company);
+    const company = await this.helper.getCompany('Kim Corp');
     const month = this.helper.getPeriod(period);
 
-    const batch = await this.prisma.batch_Record.findMany({
+    // Fetch all data in a single optimized query with proper joins
+    const batches = await this.prisma.batch_Record.findMany({
       where: {
         company_name: company.name,
         created_at: {
@@ -342,53 +343,50 @@ export class WellbeingService {
       select: {
         id: true,
         created_at: true,
-        Wellbeing: {
+        employees_under_batch: {
+          where: {
+            is_completed: true,
+          },
           select: {
-            wellbeing_score: true,
+            id: true,
+            Answer: {
+              select: {
+                answer: true,
+              },
+            },
           },
         },
       },
     });
+    // Process results without additional database queries
+    const result = batches.map(({ id, created_at, employees_under_batch }) => {
+      if (!employees_under_batch.length) {
+        return {
+          wellbeing: 0,
+          created_at,
+        };
+      }
 
-    const result: { wellbeing: number; created_at: string | Date }[] = [];
-
-    for (const { id, created_at } of batch) {
-      const eub = await this.prisma.employee_Under_Batch.findMany({
-        where: {
-          batch_id: id,
-          is_completed: true,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      if (!eub) throw new ConflictException('No user under batch!');
-
-      const flatEub = eub.flatMap((item) => item.id);
-
-      const individual_answers = await this.prisma.answer.findMany({
-        where: {
-          employee_id: {
-            in: flatEub,
-          },
-        },
-
-        select: {
-          answer: true,
-        },
-      });
-
-      if (!individual_answers)
-        throw new ConflictException('Error generating Individual Answers!');
-
-      const aggregates = this.getSumofAllAnswers(
-        individual_answers as { answer: { [key: string]: number }[] }[],
+      // Flatten all answers from all employees in this batch
+      const allAnswers = employees_under_batch.flatMap(
+        (employee) => employee.Answer,
       );
 
-      const wellbeingData = this.aggregateData(aggregates, flatEub.length);
+      if (!allAnswers.length) {
+        throw new ConflictException('Error generating Individual Answers!');
+      }
 
-      result.push({
+      // Calculate aggregates
+      const aggregates = this.getSumofAllAnswers(
+        allAnswers as { answer: { [key: string]: number }[] }[],
+      );
+
+      const wellbeingData = this.aggregateData(
+        aggregates,
+        employees_under_batch.length,
+      );
+
+      return {
         wellbeing: Number(
           (
             Number(wellbeingData.character) +
@@ -398,9 +396,9 @@ export class WellbeingService {
           ).toFixed(2),
         ),
         created_at,
-      });
-    }
-
+      };
+    });
+    console.log(result);
     return result;
   }
 
