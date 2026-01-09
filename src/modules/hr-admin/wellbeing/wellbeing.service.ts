@@ -577,7 +577,9 @@ export class WellbeingService {
     return result;
   }
 
-  private getStanine(value: number, domain: string) {
+  private getStanine(rawValue: number, domain: string) {
+    const value = Math.floor(rawValue);
+
     switch (domain) {
       case 'character':
         return value > 26
