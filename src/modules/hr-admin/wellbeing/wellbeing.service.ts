@@ -384,17 +384,19 @@ export class WellbeingService {
       );
 
       return {
-        wellbeing: Number(
-          (
+        wellbeing: Math.floor(
+          Number(
             Number(wellbeingData.character) +
-            Number(wellbeingData.career) +
-            Number(wellbeingData.connectedness) +
-            Number(wellbeingData.contentment)
-          ).toFixed(2),
+              Number(wellbeingData.career) +
+              Number(wellbeingData.connectedness) +
+              Number(wellbeingData.contentment),
+          ),
         ),
         created_at,
       };
     });
+
+    console.log(result);
     return result;
   }
 
@@ -637,7 +639,7 @@ export class WellbeingService {
     const company = await this.helper.getCompany(user_details.company);
     const month = this.helper.getPeriod(period);
 
-    const batch = await this.prisma.batch_Record.findMany({
+    const batches = await this.prisma.batch_Record.findMany({
       where: {
         company_name: company.name,
         created_at: {
@@ -649,74 +651,72 @@ export class WellbeingService {
         created_at: 'asc',
       },
       select: {
-        Wellbeing: {
+        id: true,
+        created_at: true,
+        employees_under_batch: {
+          where: {
+            is_completed: true,
+          },
           select: {
-            wellbeing_score: true,
+            id: true,
+            Answer: {
+              select: {
+                answer: true,
+              },
+            },
           },
         },
       },
     });
 
-    type WbScoreType = {
-      career: number;
-      character: number;
-      contentment: number;
-      connectedness: number;
-    };
-
-    const wbData: WbScoreType[] = [];
-
-    const emptyWellbeing = {
-      career: 0,
-      character: 0,
-      contentment: 0,
-      connectedness: 0,
-    };
-
-    for (const { Wellbeing } of batch) {
-      const wellbeingScore = Wellbeing?.[0]?.wellbeing_score;
-
-      if (!wellbeingScore) {
-        wbData.push(emptyWellbeing);
-        continue;
+    const result = batches.map(({ id, created_at, employees_under_batch }) => {
+      if (!employees_under_batch.length) {
+        return 0;
       }
 
-      wbData.push(wellbeingScore as WbScoreType);
-    }
+      // Flatten all answers from all employees in this batch
+      const allAnswers = employees_under_batch.flatMap(
+        (employee) => employee.Answer,
+      );
 
-    const totals = wbData.reduce(
-      (sum, item) => {
-        sum.career += item.career;
-        sum.character += item.character;
-        sum.contentment += item.contentment;
-        sum.connectedness += item.connectedness;
-        return sum;
-      },
-      {
-        career: 0,
-        character: 0,
-        contentment: 0,
-        connectedness: 0,
-      },
+      if (!allAnswers.length) {
+        throw new ConflictException('Error generating Individual Answers!');
+      }
+
+      // Calculate aggregates
+      const aggregates = this.getSumofAllAnswers(
+        allAnswers as { answer: { [key: string]: number }[] }[],
+      );
+
+      const wellbeingData = this.aggregateData(
+        aggregates,
+        employees_under_batch.length,
+      );
+
+      return (
+        Number(wellbeingData.character) +
+        Number(wellbeingData.career) +
+        Number(wellbeingData.connectedness) +
+        Number(wellbeingData.contentment)
+      );
+    });
+
+    const total = result.reduce(
+      (accumulator, currentValue) => accumulator + currentValue,
+      0,
     );
 
-    const wbAverage = {
-      career: Number((totals.career / wbData.length).toFixed(2)),
-      character: Number((totals.character / wbData.length).toFixed(2)),
-      contentment: Number((totals.contentment / wbData.length).toFixed(2)),
-      connectedness: Number((totals.connectedness / wbData.length).toFixed(2)),
-    };
-
-    const wbFinalScore = Object.keys(wbAverage).reduce((sum, current) => {
-      return sum + wbAverage[current];
-    }, 0);
-
     return {
-      overall_wellbeing_label: this.getOverAllWellbeingLabel(wbFinalScore),
+      overall_wellbeing_label: this.getOverAllWellbeingLabel(
+        total / result.length,
+      ),
     };
   }
 
-  private getOverAllWellbeingLabel(v: number) {
+  private getOverAllWellbeingLabel(score: number) {
+    const v = Math.floor(score);
+    console.log(v);
+
     return v > 95
       ? 'Very High'
       : v < 94 && v > 90
