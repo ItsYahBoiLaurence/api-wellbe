@@ -341,6 +341,73 @@ export class EmailerService {
     `
   }
 
+  private changePasswordRequest = ({ user, link }) => {
+    return `<!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 0;
+          background-color: #f9f9f9;
+        }
+        .email-container {
+          max-width: 600px;
+          margin: 20px auto;
+          background-color: #ffffff;
+          border: 1px solid #dddddd;
+          border-radius: 8px;
+          overflow: hidden;
+        }
+        .header {
+          background-color: #040237;
+          text-align: center;
+          padding: 20px;
+        }
+        .header img {
+          max-width: 150px;
+          height: auto;
+        }
+        .content {
+          padding: 20px;
+          color: #333333;
+          line-height: 1.5;
+        }
+        .footer {
+          background-color: #f1f1f1;
+          text-align: center;
+          padding: 10px;
+          font-size: 12px;
+          color: #666666;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="email-container">
+        <div class="header">
+          <img src="https://lh3.googleusercontent.com/fife/ALs6j_EhLAk44tlsWu-u6Vr0-clvo7ucOt2TTCGYoOaeZiQH1KeyMC0o7tfnT9Acq8TNu8mCXM8lmSZK0-f2jvtg1JwYOCzpZmC4nqdoAEAInqewBEY0R86XLE-GVMvErUK0B7LwTULKp4dFW8SCxASlHuYow0qIUhl5gMeckZmT7YT1vNuNTtKNYU_Xq2b_AiRi6tjBW22dYCdHr5MJjRu1oLiuYOz83nPpduvmcycQaxn1ugkqAihBfm9dyfsfLtvdU7xiz8S4Bwh5QMCWegyA8V0BPzPw_2gnjSupqG6OyPTDa2BocL5wD2R6D7c-TSVfZ1H5RKBCZFGlJRDBf_oVZ7Y2obdHv30g5YHO9LFTBCs5N0rCyUjj4AXoYUwDccsJVkLkuR28tmuYLNhgolHajsu551vXrAwZI4-FzCbXDQBdwe_hhk5z41RYxA8QtDNa74VvEXfnuVbowsOTHlfjyUTpCZSi2yAwA8MNcqGKupJw2EpxvZ3M5ck9ghr-kvQ8EAft1sCEJZJcMvQg8VBuK7ZjjuLpHJDLHJQU-TlLveXUki90YnuXOhQMIflAKK90bRDebNcH1tWcWvZTuLIkVEB5gZaDg2ywFevr9YpCZV6-tbBS3E33knh54mB1OMekdGAEB-abfUresNVBsOx4J8g2kLrPCgKuzSawxsCO057yQN2yhsnAG8IaCpfs9cTyhA5JFo7ib-0iIb9IaEDrmwpIvqn-fMH_0jq7LU2XALyG8a-tcxqF6MjLUC9bSokezkEkeOE2QSc7bShh0zzglqyNQN1VD4OC7x-JKlkX8T5iuzac_EYwh8-mFNFXczuRVQCDU4GC59dqLyv8dtASZTD_oHekVRqLOAtBYtWX9JG9iTToXcQ6z-cZLMEYiGqrZikZgGUum8OhKX6pvLzBMz96TUpIXBxMYFkTyZkxyqNsjk72dvK4S-q5sN5rs6EmLwgo31SJhba7PGwkaS5t9CCDxChhET1EkSi4lXKP7GGQ8NbvayEN9mtAQ831pzMJc0kav46e3I4e0b97Pqn93UdXAhONkuTC68xeL-r1g4NrfQdrHz62QB-PjJuhIhAvciWaCaFtGTbVgULQH-1Js26mXAuwPiiiSlV6luG_t95ik2OPeaGQPq5qV3SDz0Lgyst9SjOsW6sQfLDF0LAgn-jh6e5n_2RVuMfwASPl0IJzSDeSCDGLuR5ja4vwKBchi6eE4whAb0Qmv4P3_K4-0Q_DjctGEslHpNspdhsUoTB7r0PPU6CM8FlX5zEv76UpsIIfJikyFCj3ZkkQL5WMJNz6PDx2mtGfeXrhcuDz1-z3I-bG5CQ8XeZZxl3O0GGPRiFFL9EZVq6ZajLz583ooJpIEbwlQ5bkQ4N4ZqP6PZFnIzjJWP5bsJVga6-PVNZjhVC1xq2_DnmZRaTseV5TMkVAiMHdNjc-tObMEbMIxKwEN3vv9Gl9Bpyo6bw0PHoIr20V9L8iyP6e4eXH-HAPE3AwFiEti5-kqSLY7oo6hsMPvpsz-S6FoH8V4j4roABtgV8KWxURIM5QzZLep11F-KCi8pSf1-sd4oWuWKhnIqjcE01gQZwyfsCc_brwW5nHNlxPliVmTKmheIz8njVdt4EKeJ_S2I05nQu49qi3A0l_vgoFNs4mmVMUTGqAUxbHUdETfjP6AEpMPVgEmyzkqp6HQwCz-Q=w1920-h870" alt="Wellbe" />
+        </div>
+        <div class="content">
+          <h1 style="color: #040237;">Password Reset Request</h1>
+          <p>Hello ${user},</p>
+          <p>
+            We are sending you this email because you requested a password reset. By clicking the link you will be redirected to the password reset page:
+          </p>
+          <a  href="${link}">Reset your password.</a>
+           <p>
+            If you didn't request a password reset, you can ignore this email. Your password will not be changed.
+          </p>
+          <p>The Wellbe Team</p>
+        </div>
+        <div class="footer">
+          &copy; 2025 Wellbe: Your Wellbeing Buddy. All rights reserved.<br />
+        </div>
+      </div>
+    </body>
+    </html>`
+  }
+
   async welcomeEmail(email_data: { to: string, subject: string, company: string, user: string }) {
     if (!email_data) throw new NotFoundException("Email not found!")
     const { to, subject, company, user } = email_data
@@ -388,6 +455,19 @@ export class EmailerService {
         subject: "You're Invited",
         html: this.inviteTemplate({ user, company, link })
       })
+    } catch (e) {
+      this.console.log(e)
+    }
+  }
+
+  async changePasswordEmail(user: string, link: string, email: string) {
+    try {
+      await this.mailerService.sendMail({
+        to: email,
+        subject: "Change Password Reset",
+        html: this.changePasswordRequest({ user, link })
+      })
+      return { success: true }
     } catch (e) {
       this.console.log(e)
     }

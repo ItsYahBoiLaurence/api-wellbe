@@ -11,6 +11,7 @@ export class AuthController {
     @Public()
     @Post()
     async signIn(@Body() credentials: LoginCreds) {
+        console.log(credentials)
         return this.auth.signIn(credentials)
     }
 }

@@ -10,35 +10,36 @@ datasource db {
 }
 
 model Company {
-  id           Int            @id @default(autoincrement())
   name         String         @unique
   created_at   DateTime       @default(now())
   batch_record Batch_Record[]
   departments  Department[]
   ScatterData  ScatterData[]
   Settings     Settings?
+  //new column
+  id           String         @id @default(cuid()) @map("newId") // in the database it is named newId
 }
 
 model Department {
-  id         Int         @id @default(autoincrement())
   name       String
   created_at DateTime    @default(now())
   company_id String
   company    Company     @relation(fields: [company_id], references: [name], onDelete: Cascade)
   employees  Employee[]
   Wellbeing  Wellbeing[]
+  id         String      @id @default(cuid()) @map("newId")
 
   @@unique([name, company_id])
 }
 
 model Employee {
-  id              Int          @id @default(autoincrement())
+  id              String       @id @default(cuid()) @map("newId")
   first_name      String
   last_name       String
   email           String       @unique
   password        String
   role            String       @default("employee")
-  department_id   Int
+  department_id   String       @map("newDepartmentId")
   department      Department   @relation(fields: [department_id], references: [id], onDelete: Cascade)
   tips            Tips[]
   advices         UserAdvice[]
@@ -46,35 +47,41 @@ model Employee {
 }
 
 model Tips {
-  id            Int      @id @default(autoincrement())
-  user          String
-  tip           String
-  created_at    DateTime
-  batch_created Int
-  user_email    Employee @relation(fields: [user], references: [email], onDelete: Cascade)
+  user       String
+  tip        String
+  created_at DateTime
+  user_email Employee @relation(fields: [user], references: [email], onDelete: Cascade)
+
+  batch_created String       @map("newBatchCreated")
+  batch_record  Batch_Record @relation(fields: [batch_created], references: [id], onDelete: Cascade)
+
+  id String @id @default(cuid()) @map("newId")
 }
 
 model UserAdvice {
-  id            Int      @id @default(autoincrement())
-  user          String
-  advice        String
-  created_at    DateTime
-  batch_created Int
-  user_email    Employee @relation(fields: [user], references: [email], onDelete: Cascade)
+  user       String
+  advice     String
+  created_at DateTime
+  user_email Employee @relation(fields: [user], references: [email], onDelete: Cascade)
+
+  batch_created String       @map("newBatchCreated")
+  batch_record  Batch_Record @relation(fields: [batch_created], references: [id], onDelete: Cascade)
+
+  id String @id @default(cuid()) @map("newId")
 
   @@unique([user, batch_created])
 }
 
 model Question {
-  id         Int     @id @unique(map: "Questions_id_key")
-  question   String
-  is_flipped Boolean
-  domain     String
-  subdomain  String
+  id             Int              @id @unique(map: "Questions_id_key")
+  question       String
+  is_flipped     Boolean
+  domain         String
+  subdomain      String
+  interpretation Interpretation[]
 }
 
 model Batch_Record {
-  id                    Int                    @id @default(autoincrement())
   created_at            DateTime               @default(now())
   start_date            DateTime               @default(now())
   end_date              DateTime
@@ -85,28 +92,38 @@ model Batch_Record {
   company               Company                @relation(fields: [company_name], references: [name], onDelete: Cascade)
   employees_under_batch Employee_Under_Batch[]
   Wellbeing             Wellbeing[]
+  userAdvice            UserAdvice[]
+  Tips                  Tips[]
+
+  id String @id @default(cuid()) @map("newId")
+
+  old_batch_id Int?
 }
 
 model Employee_Under_Batch {
-  id                Int          @id @default(autoincrement())
+  id                String       @id @default(cuid()) @map("newId")
   email             String
   question_bank     Json
   is_completed      Boolean      @default(false)
-  batch_id          Int
   created_at        DateTime
   set_participation Json         @default("[false, false, false, false, false]")
-  department_id     Int
   Answer            Answer[]
+  department_id     String       @map("newDepartmentId")
+  batch_id          String       @map("newBatchId")
   batch             Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
 
   @@unique([email, batch_id])
+  @@index([batch_id])
 }
 
 model Answer {
-  id          Int                  @id @default(autoincrement())
   answer      Json
-  employee_id Int
-  employee    Employee_Under_Batch @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+  employee_id String                @map("new_employee_id")
+  employee    Employee_Under_Batch? @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+
+  id String @id @default(cuid()) @map("newId")
+
+  @@index([employee_id])
 }
 
 model Settings {
@@ -125,35 +142,37 @@ model Advice {
 }
 
 model Wellbeing {
-  id              Int          @id @default(autoincrement())
   user_email      String
   created_at      DateTime
   wellbeing_score Json
-  batch_id        Int
-  department      Int
-  batch           Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+  department      String       @map("newDepartment")
   department_id   Department   @relation(fields: [department], references: [id], onDelete: Cascade)
   user            Employee     @relation(fields: [user_email], references: [email], onDelete: Cascade)
+  batch_id        String       @map("newBatchId")
+  batch           Batch_Record @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+
+  id String @id @default(cuid()) @map("newId")
 
   @@unique([user_email, batch_id])
 }
 
 model ScatterData {
-  id           Int      @id @default(autoincrement())
   company_name String
   scatterData  Json
   created_at   DateTime
   company      Company  @relation(fields: [company_name], references: [name], onDelete: Cascade)
+  id           String   @id @default(cuid()) @map("newId")
 }
 
 model Inbox {
-  id         Int      @id @default(autoincrement())
   subject    String
   receiver   String
   body       String
   created_at DateTime
   opened     Boolean  @default(false)
   tag        String
+
+  id String @id @default(cuid()) @map("newId")
 }
 
 enum Frequency {
@@ -161,4 +180,42 @@ enum Frequency {
   WEEKLY
   EVERY_HOUR
   EVERY_MINUTE
+}
+
+enum ScoreBand {
+  HIGH
+  AVERAGE
+  BELOW_AVERAGE
+  LOW
+}
+
+model Interpretation {
+  id          String    @id @default(cuid())
+  question_id Int
+  question    Question  @relation(references: [id], fields: [question_id])
+  score_band  ScoreBand
+  content     String
+}
+
+enum Domain {
+  CHARACTER
+  CAREER
+  CONNECTEDNESS
+  CONTENTMENT
+}
+
+enum DomainScoreband {
+  VERY_HIGH
+  ABOVE_AVERAGE
+  AVERAGE
+  BELOW_AVERAGE
+  VERY_LOW
+}
+
+model DomainInterpretation {
+  id               String          @id @default(cuid())
+  domain           Domain
+  score_band       DomainScoreband
+  insight          String
+  what_to_build_on String
 }

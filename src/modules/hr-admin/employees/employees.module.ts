@@ -6,9 +6,10 @@ import { HelperModule } from 'src/modules/helper/helper.module';
 import { EmailerModule } from 'src/modules/emailer/emailer.module';
 import { CsvParcerModule } from 'src/modules/csv-parcer/csv-parcer.module';
 import { ConfigModule } from '@nestjs/config';
+import { ResendMailerModule } from 'src/modules/resend-mailer/resend-mailer.module';
 
 @Module({
-  imports: [PrismaModule, HelperModule, EmailerModule, CsvParcerModule, ConfigModule],
+  imports: [PrismaModule, HelperModule, EmailerModule, CsvParcerModule, ConfigModule, ResendMailerModule],
   providers: [EmployeesService],
   controllers: [EmployeesController]
 })

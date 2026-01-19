@@ -19,13 +19,14 @@ export class AuthService {
 
         const { email, password } = credential
 
+
         const user = await this.userService.findUser(email.toLowerCase())
 
         if (!user) throw new UnauthorizedException("Invalid Credentials!")
 
         const isPassMatch = await this.helper.comparePass(password, user.password)
 
-        if (isPassMatch !== true) throw new UnauthorizedException("Incorrect Username or Password!")
+        if (isPassMatch !== true) throw new UnauthorizedException("Incorrect Username or Passwords!")
 
         const payload = {
             sub: user.email,
@@ -65,5 +66,27 @@ export class AuthService {
         if (!user) throw new ConflictException("Registration Error!")
 
         return user
+    }
+
+    async signCreds(creds: { email: string, role: string, company: string }) {
+        const payload = {
+            sub: creds.email,
+            company: creds.company,
+            role: creds.role
+        }
+
+        const access_token = await this.jwtService.signAsync(payload)
+
+        return { access_token }
+    }
+
+    async validateToken(token: { access_token: string }) {
+        try {
+            await this.jwtService.verifyAsync(token.access_token)
+            return { success: true, message: "Token is valid!" }
+        } catch (error) {
+            if (error.name == 'TokenExpiredError') return { success: false, message: "Expired Token" }
+            else return { success: false, message: "Invalid token" }
+        }
     }
 }

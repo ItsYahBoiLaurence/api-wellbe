@@ -1,7 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
-import { TipController } from '../tip/tip.controller';
-import { BadRequestError } from 'openai';
 
 @Injectable()
 export class InboxService {
@@ -10,7 +8,7 @@ export class InboxService {
 
     constructor(private readonly prisma: PrismaService) { }
 
-    async getInbox(email: string, cursor?: number, limit = 10) {
+    async getInbox(email: string, cursor?: string, limit = 10) {
         const query: Parameters<typeof this.prisma.inbox.findMany>[0] = {
             where: {
                 receiver: email
@@ -23,7 +21,7 @@ export class InboxService {
 
         if (cursor) {
             query.skip = 1
-            query.cursor = { id: Number(cursor) }
+            query.cursor = { id: cursor }
         }
 
         const tips = await this.prisma.inbox.findMany(query)
@@ -34,7 +32,7 @@ export class InboxService {
         }
     }
 
-    async getSingleMessage(tag: string, id: number) {
+    async getSingleMessage(tag: string, id: string) {
         if (!tag || !id) throw new BadRequestException('Invalid message id and tag!')
 
         const single = await this.prisma.inbox.findFirst({
@@ -48,7 +46,7 @@ export class InboxService {
         return single
     }
 
-    async updateMessage(id: number) {
+    async updateMessage(id: string) {
         if (!id) throw new BadRequestException('Invalid Id')
 
         const updatedMessage = await this.prisma.inbox.update({

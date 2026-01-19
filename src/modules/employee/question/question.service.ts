@@ -88,9 +88,22 @@ export class QuestionService {
         return questions
     }
 
-    async submitAnswers(data: AnswerModel[], user_data: JwtPayload) {
+    private flipAnswer(data: AnswerModel[]) {
+        const keysToFlip = ["404", "401"]
+        const flipMap = { 4: 1, 3: 2, 2: 3, 1: 4 }
+        return data.map(item => {
+            const key = Object.keys(item)[0]
+            const value = item[key]
+            if (keysToFlip.includes(key)) {
+                return { [key]: flipMap[value] || value }
+            }
+            return item
+        })
+    }
 
-        if (!data || !user_data) throw new BadRequestException("Invalid Payload!")
+    async submitAnswers(user_answer: AnswerModel[], user_data: JwtPayload) {
+
+        if (!user_answer || !user_data) throw new BadRequestException("Invalid Payload!")
 
         const { sub, company } = user_data
 
@@ -99,6 +112,8 @@ export class QuestionService {
         const batch = await this.helper.getLatestBatch(company_name.name)
 
         if (!batch) throw new NotFoundException("No Batch Available!")
+
+        const data = this.flipAnswer(user_answer)
 
         const user = await this.prisma.employee_Under_Batch.findUnique({
             where: {
@@ -111,7 +126,7 @@ export class QuestionService {
 
         if (!user) throw new NotFoundException("User not in the Batch!")
 
-        const missed = await this.getMissedQuestion(user.set_participation as [], batch.current_set_number)
+        const missed = this.getMissedQuestion(user.set_participation as [], batch.current_set_number)
 
         if (missed !== null) {
             await this.prisma.answer.create({

@@ -46,3 +46,19 @@ export interface Deadline {
 export interface Invite {
     data: BaseData & { link: string };
 }
+
+
+export type EmailContent = {
+    user: string
+    company?: string
+    left?: string
+    link?: string
+}
+
+
+export type ResendEmail = {
+    to: string
+    from: string
+    subject: string
+    html: string
+}

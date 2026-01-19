@@ -7,3 +7,23 @@ export interface DomainStats {
     count: number;
 }
 
+export interface RawAnswer {
+    answer: SingleRawAnswer[]
+}
+
+export interface SingleRawAnswer {
+    [key: string]: number
+}
+
+
+export type NewAnswerModel = {
+    answer: SingleRawAnswer[]
+    employee_id: string
+    id: string
+}
+
+
+export type CompanyAnswerModel = {
+    answer: SingleRawAnswer[],
+    employee_id: string
+}
