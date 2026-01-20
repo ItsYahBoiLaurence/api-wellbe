@@ -29,8 +29,6 @@ export class WellbeingService {
 
     const result = Math.round((rawScore / maxScore[domain]) * 100);
 
-    console.log(`${result} -- ${rawScore / maxScore[domain]}`)
-
     return result
   }
 
@@ -400,7 +398,6 @@ export class WellbeingService {
       };
     });
 
-    console.log(result);
     return result;
   }
 
@@ -720,7 +717,6 @@ export class WellbeingService {
 
   private getOverAllWellbeingLabel(score: number) {
     const v = Math.floor(score);
-    console.log(v);
 
     return v > 95
       ? 'Very High'
