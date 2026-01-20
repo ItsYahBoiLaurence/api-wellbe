@@ -724,11 +724,11 @@ export class WellbeingService {
 
     return v > 95
       ? 'Very High'
-      : v < 94 && v > 90
+      : v <= 94 && v >= 90
         ? 'Above Average'
-        : v < 89 && v > 74
+        : v <= 89 && v >= 74
           ? 'Average'
-          : v < 73 && v > 64
+          : v <= 73 && v >= 64
             ? 'Below Average'
             : 'Very Low';
   }
