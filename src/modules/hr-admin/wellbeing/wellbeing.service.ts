@@ -27,7 +27,11 @@ export class WellbeingService {
       connectedness: 20,
     };
 
-    return Math.floor((rawScore / maxScore[domain]) * 100);
+    const result = Math.round((rawScore / maxScore[domain]) * 100);
+
+    console.log(`${result} -- ${rawScore / maxScore[domain]}`)
+
+    return result
   }
 
   async generateUserWellbeing(user: JwtPayload) {
@@ -496,6 +500,7 @@ export class WellbeingService {
           `No Insight for ${domainName} - ${scoreBand}`,
         );
       }
+
 
       return {
         domain,
